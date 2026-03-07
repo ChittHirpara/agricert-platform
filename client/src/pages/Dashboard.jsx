@@ -4,6 +4,7 @@ import { LogOut } from 'lucide-react';
 import FarmerDashboard from './FarmerDashboard';
 import CertifierDashboard from './CertifierDashboard';
 import AuctionMarketplace from './AuctionMarketplace';
+import ConsumerVerification from './ConsumerVerification';
 
 const Dashboard = ({ user, setUser }) => {
   const handleLogout = () => {
@@ -26,7 +27,7 @@ const Dashboard = ({ user, setUser }) => {
 
           <div className="flex items-center gap-6">
             <div className="text-right hidden md:block">
-              <p className="text-sm font-bold text-gray-800">{user.username}</p>
+              <p className="text-sm font-bold text-gray-800">{user.name}</p>
               <p className="text-xs text-gray-500 uppercase tracking-wider">{user.role}</p>
             </div>
             <button
@@ -43,9 +44,10 @@ const Dashboard = ({ user, setUser }) => {
       {/* Main Content Area */}
       <main className="max-w-7xl mx-auto p-0 md:p-8">
         {/* Render Dashboard based on Hackathon Role Map */}
-        {user.role === 'exporter' && <FarmerDashboard user={user} />}
-        {user.role === 'qa' && <CertifierDashboard user={user} />}
-        {user.role === 'importer' && <AuctionMarketplace user={user} />}
+        {user.role === 'farmer' && <FarmerDashboard user={user} />}
+        {user.role === 'certifier' && <CertifierDashboard user={user} />}
+        {user.role === 'distributor' && <AuctionMarketplace user={user} />}
+        {user.role === 'consumer' && <ConsumerVerification />}
         {user.role === 'admin' && <div className="text-center py-20">Admin Dashboard Coming Soon...</div>}
       </main>
     </div>

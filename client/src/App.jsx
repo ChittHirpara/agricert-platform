@@ -12,7 +12,6 @@ import CertifierDashboard from './pages/CertifierDashboard';
 import ConsumerVerification from './pages/ConsumerVerification';
 import Auction from './components/Auction';
 import ChatbotWidget from './components/ChatbotWidget';
-import RoleSwitcher from './components/RoleSwitcher';
 
 function App() {
   const [user, setUser] = useState(null);
@@ -62,7 +61,6 @@ function App() {
 
       {/* --- NEW HACKATHON GLOBAL COMPONENTS --- */}
       <ChatbotWidget />
-      <RoleSwitcher user={user} setUser={setUser} />
     </BrowserRouter>
   );
 }

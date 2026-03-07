@@ -24,7 +24,7 @@ const protect = (req, res, next) => {
 const authorize = (...roles) => {
     return (req, res, next) => {
         if (!req.user || !roles.includes(req.user.role)) {
-            return res.status(403).json({ msg: 'User role not authorized for this action' });
+            return res.status(403).json({ msg: `Role '${req.user?.role || 'unknown'}' not allowed. Required: ${roles.join(' or ')}` });
         }
         next();
     };

@@ -43,6 +43,17 @@ router.post('/scan', protect, authorize('certifier'), upload.single('document'),
         const ocrData = await extractDataFromImage(req.file.path);
         res.json({ ocrData, fileUrl: `/uploads/${req.file.filename}` });
     } catch (err) {
+        if (err.message === "Invalid certification document") {
+            return res.status(400).json({
+                error: "Invalid certification document",
+                message: "No crop quality data detected"
+            });
+        }
+        if (err.message === "Incomplete OCR data") {
+            return res.status(400).json({
+                error: "Incomplete OCR data"
+            });
+        }
         next(err);
     }
 });

@@ -85,7 +85,8 @@ const CertifierDashboard = () => {
             setOcrData(res.data.ocrData);
         } catch (error) {
             console.error('OCR Error', error);
-            alert('Failed to scan document');
+            const message = error.response?.data?.error || error.response?.data?.msg || 'Failed to scan document';
+            alert(message);
         } finally {
             setIsScanning(false);
         }
@@ -280,7 +281,7 @@ const CertifierDashboard = () => {
                                             <FileText size={20} className="text-blue-500" /> Extracted Quality Data
                                         </h4>
                                         <div className="grid grid-cols-2 gap-4 mb-6">
-                                            {Object.entries(ocrData).filter(([key]) => key !== 'rawText').map(([key, value]) => (
+                                            {Object.entries(ocrData).filter(([key]) => !['rawText', 'prediction', 'confidence'].includes(key)).map(([key, value]) => (
                                                 <div key={key} className="bg-white p-3 rounded-md border border-gray-100 shadow-sm">
                                                     <span className="block text-xs text-gray-500 uppercase font-semibold mb-1">{key}</span>
                                                     <span className="block text-sm text-gray-900 font-medium">{value}</span>
@@ -289,23 +290,25 @@ const CertifierDashboard = () => {
                                         </div>
 
                                         {/* --- ML BONUS FEATURE --- */}
-                                        <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg p-4 border border-indigo-100 flex items-start gap-4">
-                                            <div className="bg-indigo-100 p-2 rounded-full text-indigo-600 mt-1">
-                                                <CheckCircle size={20} />
-                                            </div>
-                                            <div className="flex-1">
-                                                <h5 className="font-semibold text-indigo-900">AI Prediction: Certification Success</h5>
-                                                <div className="flex items-center gap-3 mt-2">
-                                                    <div className="flex-1 bg-white rounded-full h-3 border border-indigo-100 overflow-hidden">
-                                                        <div className="bg-indigo-500 h-full rounded-full" style={{ width: '88%' }}></div>
-                                                    </div>
-                                                    <span className="font-bold text-indigo-700">88%</span>
+                                        {ocrData.prediction && (
+                                            <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg p-4 border border-indigo-100 flex items-start gap-4">
+                                                <div className="bg-indigo-100 p-2 rounded-full text-indigo-600 mt-1">
+                                                    <CheckCircle size={20} />
                                                 </div>
-                                                <p className="text-sm text-indigo-800 mt-2">
-                                                    <strong>Suggestion:</strong> Moisture levels are acceptable but slightly elevated. Ensure dry storage before auction entry to maintain grade.
-                                                </p>
+                                                <div className="flex-1">
+                                                    <h5 className="font-semibold text-indigo-900">AI Prediction: Certification Success</h5>
+                                                    <div className="flex items-center gap-3 mt-2">
+                                                        <div className="flex-1 bg-white rounded-full h-3 border border-indigo-100 overflow-hidden">
+                                                            <div className="bg-indigo-500 h-full rounded-full" style={{ width: `${Math.round(ocrData.prediction.probability * 100)}%` }}></div>
+                                                        </div>
+                                                        <span className="font-bold text-indigo-700">{Math.round(ocrData.prediction.probability * 100)}%</span>
+                                                    </div>
+                                                    <p className="text-sm text-indigo-800 mt-2">
+                                                        <strong>Suggestion:</strong> {ocrData.prediction.suggestion}
+                                                    </p>
+                                                </div>
                                             </div>
-                                        </div>
+                                        )}
                                     </div>
 
                                     <div className="flex gap-4">

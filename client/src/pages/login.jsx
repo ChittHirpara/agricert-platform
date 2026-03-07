@@ -235,8 +235,13 @@ const Login = ({ setUser }) => {
           </button>
 
           <div className="mt-6 p-6 bg-white/5 rounded-2xl border border-white/10 text-center">
-            <h3 className="text-white font-bold mb-2">Create your AgriCert account</h3>
-            <p className="text-white/70 text-sm">Secure crop certification and trading seamlessly via blockchain.</p>
+            <h3 className="text-white font-bold mb-2">{isLogin ? 'New to AgriCert?' : 'Already have an account?'}</h3>
+            <button
+              onClick={() => setIsLogin(!isLogin)}
+              className="text-white/90 font-semibold underline underline-offset-4 hover:text-white transition-colors text-sm"
+            >
+              {isLogin ? 'Create an account →' : 'Log in instead →'}
+            </button>
           </div>
 
           {/* QUICK DEMO ACCESS SECTION */}
