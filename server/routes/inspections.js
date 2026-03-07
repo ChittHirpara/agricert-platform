@@ -1,46 +1,32 @@
 const express = require('express');
-const router = express.Router();
-const Batch = require('../models/Batch');
+const { protect, authorize } = require('../middleware/authMiddleware');
 const Inspection = require('../models/Inspection');
 
-// @route   GET /api/inspections/pending
-// @desc    Get all batches waiting for inspection (Status = Submitted)
-router.get('/pending', async (req, res) => {
+const router = express.Router();
+
+// @route   GET /api/inspections
+// @desc    Get all inspections (certifier access)
+router.get('/', protect, authorize('certifier', 'admin'), async (req, res, next) => {
   try {
-    const batches = await Batch.find({ status: 'Submitted' }).populate('exporter', 'username');
-    res.json(batches);
+    const inspections = await Inspection.find()
+      .populate('batchId', ['cropName', 'quantity', 'location'])
+      .populate('certifierId', ['name', 'email'])
+      .sort({ timestamp: -1 });
+    res.json(inspections);
   } catch (err) {
-    res.status(500).send('Server Error');
+    next(err);
   }
 });
 
-// @route   POST /api/inspections
-// @desc    Submit inspection results & Update Batch Status
-router.post('/', async (req, res) => {
+// @route   GET /api/inspections/:batchId
+// @desc    Get inspections for a specific batch
+router.get('/:batchId', protect, async (req, res, next) => {
   try {
-    const { batchId, qaId, moisture, pesticide, organicStatus, isoCode, result } = req.body;
-
-    // 1. Save the Scientific Data
-    const newInspection = new Inspection({
-      batch: batchId,
-      qaAgency: qaId,
-      moisture,
-      pesticide,
-      organicStatus,
-      isoCode,
-      result
-    });
-    await newInspection.save();
-
-    // 2. Update the Batch Status to "Certified" or "Rejected"
-    const status = result === 'Pass' ? 'Certified' : 'Rejected';
-    await Batch.findByIdAndUpdate(batchId, { status: status });
-
-    res.json({ msg: 'Inspection Submitted', status });
-
+    const inspections = await Inspection.find({ batchId: req.params.batchId })
+      .populate('certifierId', ['name', 'email']);
+    res.json(inspections);
   } catch (err) {
-    console.error(err);
-    res.status(500).send('Server Error');
+    next(err);
   }
 });
 

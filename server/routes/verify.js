@@ -1,57 +1,63 @@
 const express = require('express');
-const router = express.Router();
 const Batch = require('../models/Batch');
 const Inspection = require('../models/Inspection');
+const Auction = require('../models/Auction');
 
-/**
- * Public endpoint to verify a product's authenticity
- */
-router.get('/:productId', async (req, res) => {
+const router = express.Router();
+
+// @route   GET /api/verify/:productId
+// @desc    Consumer verification - get full traceability data for a product
+router.get('/:productId', async (req, res, next) => {
     try {
-        const { productId } = req.params;
+        const batch = await Batch.findById(req.params.productId)
+            .populate('farmerId', ['name', 'email']);
 
-        const batch = await Batch.findById(productId)
-            .populate('exporter', 'companyName email phone role')
-            .populate('certifier', 'companyName role')
-            .populate('auctionWinner', 'companyName role');
+        if (!batch) return res.status(404).json({ msg: 'Product not found' });
 
-        if (!batch) {
-            return res.status(404).json({ error: 'Product/Batch not found' });
-        }
+        // Get inspection/certification data
+        const inspection = await Inspection.findOne({ batchId: batch._id })
+            .populate('certifierId', ['name', 'email']);
 
-        const inspection = await Inspection.findOne({ batch: productId })
-            .populate('qaAgency', 'companyName');
+        // Get auction data
+        const auction = await Auction.findOne({ batchId: batch._id })
+            .populate('winner', ['name', 'email']);
 
         res.json({
-            success: true,
-            data: {
-                productDetails: {
-                    productType: batch.productType,
-                    quantity: batch.quantity,
-                    location: batch.location,
-                    destination: batch.destination,
-                    status: batch.status,
-                    createdAt: batch.createdAt
-                },
-                farmer: batch.exporter,
-                certifier: batch.certifier || (inspection ? inspection.qaAgency : null),
-                inspectionData: inspection ? {
-                    result: inspection.result,
-                    date: inspection.inspectionDate,
-                    ocrData: inspection.ocrData || null
+            product: {
+                id: batch._id,
+                cropName: batch.cropName,
+                quantity: batch.quantity,
+                location: batch.location,
+                status: batch.status,
+                createdAt: batch.createdAt
+            },
+            farmer: batch.farmerId ? {
+                name: batch.farmerId.name,
+                email: batch.farmerId.email
+            } : null,
+            certification: inspection ? {
+                certifier: inspection.certifierId ? {
+                    name: inspection.certifierId.name,
+                    email: inspection.certifierId.email
                 } : null,
-                blockchain: {
-                    hash: batch.blockchainHash || "Not yet certified on blockchain",
-                    network: "Polygon Amoy"
-                },
-                auctionStatus: batch.auctionStatus,
-                auctionWinner: batch.auctionWinner || null
-            }
+                ocrData: inspection.ocrData,
+                status: inspection.status,
+                timestamp: inspection.timestamp
+            } : null,
+            blockchain: {
+                txHash: batch.blockchainHash
+            },
+            auction: auction ? {
+                status: auction.status,
+                highestBid: auction.highestBid,
+                winner: auction.winner ? {
+                    name: auction.winner.name,
+                    email: auction.winner.email
+                } : null
+            } : null
         });
-
-    } catch (error) {
-        console.error('Verify Route Error:', error);
-        res.status(500).json({ error: 'Internal Server Error' });
+    } catch (err) {
+        next(err);
     }
 });
 

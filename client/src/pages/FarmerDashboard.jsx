@@ -3,6 +3,13 @@ import axios from 'axios';
 import { Plus, Upload, Play, Package, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
+const API = 'http://localhost:5000';
+
+const getAuthHeader = () => {
+    const token = localStorage.getItem('token');
+    return token ? { Authorization: `Bearer ${token}` } : {};
+};
+
 const FarmerDashboard = ({ user }) => {
     const [batches, setBatches] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -10,20 +17,21 @@ const FarmerDashboard = ({ user }) => {
     // Form State
     const [showForm, setShowForm] = useState(false);
     const [formData, setFormData] = useState({
-        productType: '',
+        cropName: '',
         quantity: '',
-        location: '',
-        destination: '' // Optional for hackathon, but exists in schema
+        location: ''
     });
     const [file, setFile] = useState(null);
 
     useEffect(() => {
-        if (user?._id) fetchBatches();
+        fetchBatches();
     }, [user]);
 
     const fetchBatches = async () => {
         try {
-            const res = await axios.get(`http://localhost:5000/api/batches/${user._id}`);
+            const res = await axios.get(`${API}/api/batches/my`, {
+                headers: getAuthHeader()
+            });
             setBatches(res.data);
         } catch (err) {
             console.error(err);
@@ -35,25 +43,26 @@ const FarmerDashboard = ({ user }) => {
         setLoading(true);
 
         const data = new FormData();
-        data.append('exporterId', user._id);
-        data.append('productType', formData.productType);
+        data.append('cropName', formData.cropName);
         data.append('quantity', formData.quantity);
         data.append('location', formData.location);
-        data.append('destination', formData.destination);
-        if (file) data.append('attachments', file);
+        if (file) data.append('document', file);
 
         try {
-            await axios.post('http://localhost:5000/api/batches', data, {
-                headers: { 'Content-Type': 'multipart/form-data' }
+            await axios.post(`${API}/api/batches`, data, {
+                headers: {
+                    ...getAuthHeader(),
+                    'Content-Type': 'multipart/form-data'
+                }
             });
             toast.success('Crop batch submitted for certification!');
             setShowForm(false);
-            setFormData({ productType: '', quantity: '', location: '', destination: '' });
+            setFormData({ cropName: '', quantity: '', location: '' });
             setFile(null);
             fetchBatches();
         } catch (err) {
             console.error(err);
-            toast.error('Failed to create batch');
+            toast.error(err.response?.data?.msg || 'Failed to create batch');
         } finally {
             setLoading(false);
         }
@@ -61,9 +70,11 @@ const FarmerDashboard = ({ user }) => {
 
     const handleStartAuction = async (batchId) => {
         try {
-            await axios.post('http://localhost:5000/api/auction/start', { batchId });
+            await axios.post(`${API}/api/auction/start`, { batchId, startingPrice: 100 }, {
+                headers: getAuthHeader()
+            });
             toast.success('Auction activated successfully!');
-            fetchBatches(); // Refresh UI to show 'active' state
+            fetchBatches();
         } catch (err) {
             console.error(err);
             toast.error(err.response?.data?.msg || 'Could not start auction');
@@ -95,7 +106,7 @@ const FarmerDashboard = ({ user }) => {
                             <input
                                 required type="text" placeholder="e.g. Organic Wheat"
                                 className="w-full border border-gray-300 rounded-lg p-3 outline-none focus:ring-2 focus:ring-green-500"
-                                value={formData.productType} onChange={e => setFormData({ ...formData, productType: e.target.value })}
+                                value={formData.cropName} onChange={e => setFormData({ ...formData, cropName: e.target.value })}
                             />
                         </div>
                         <div>
@@ -150,12 +161,12 @@ const FarmerDashboard = ({ user }) => {
                         <div key={batch._id} className="bg-white border text-left border-gray-200 shadow-sm rounded-xl p-6 flex flex-col justify-between hover:shadow-md transition-shadow">
                             <div>
                                 <div className="flex justify-between items-start mb-4">
-                                    <h4 className="text-lg font-bold text-gray-900">{batch.productType}</h4>
+                                    <h4 className="text-lg font-bold text-gray-900">{batch.cropName}</h4>
 
                                     {/* Status Badge */}
-                                    <span className={`px-3 py-1 rounded-full text-xs font-bold ${batch.status === 'Certified' ? 'bg-green-100 text-green-700 border border-green-200' :
-                                            batch.status === 'Rejected' ? 'bg-red-100 text-red-700 border border-red-200' :
-                                                'bg-yellow-100 text-yellow-700 border border-yellow-200'
+                                    <span className={`px-3 py-1 rounded-full text-xs font-bold ${batch.status === 'certified' ? 'bg-green-100 text-green-700 border border-green-200' :
+                                        batch.status === 'rejected' ? 'bg-red-100 text-red-700 border border-red-200' :
+                                            'bg-yellow-100 text-yellow-700 border border-yellow-200'
                                         }`}>
                                         {batch.status}
                                     </span>
@@ -176,7 +187,7 @@ const FarmerDashboard = ({ user }) => {
 
                             {/* Actions Footer */}
                             <div className="pt-4 border-t border-gray-100">
-                                {batch.status === 'Certified' && batch.auctionStatus !== 'active' ? (
+                                {batch.status === 'certified' && batch.auctionStatus !== 'active' ? (
                                     <button
                                         onClick={() => handleStartAuction(batch._id)}
                                         className="w-full flex justify-center items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-lg font-bold shadow-sm transition-colors"

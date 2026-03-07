@@ -1,36 +1,55 @@
 const express = require('express');
 const router = express.Router();
 
-// Simple rule-based chatbot for hackathon
-router.post('/ask', async (req, res) => {
-    try {
-        const { question } = req.body;
-        if (!question) {
-            return res.status(400).json({ error: "Question is required" });
-        }
-
-        const q = question.toLowerCase();
-        let answer = "I'm unsure. Could you rephrase your question?";
-
-        if (q.includes("certify") || q.includes("process") || q.includes("how")) {
-            answer = "To certify a crop: 1. A Farmer uploads a batch. 2. A QA/Certifier verifies the crop physically and uploads the certification certificate. 3. Our system scans it via OCR. 4. The Certifier approves it. 5. It gets hashed to the Polygon blockchain for immutability! 6. Now it's ready for auction.";
-        } else if (q.includes("quality") || q.includes("standards")) {
-            answer = "Quality standards are verified by registered QA Agencies. They check moisture content, organic status, pesticide levels, and overall grade, typically using an ISO standard format.";
-        } else if (q.includes("auction") || q.includes("bid")) {
-            answer = "Once a crop batch is certified, its auctionStatus becomes 'active'. Distributors can join the auction room and place live bids. The highest bid wins.";
-        } else if (q.includes("blockchain") || q.includes("polygon")) {
-            answer = "We use the Polygon Amoy testnet. When a certification is approved, its critical data is hashed and stored in our AgriCert smart contract. This provides an immutable, transparent trail for consumers.";
-        } else if (q.includes("verify") || q.includes("consumer") || q.includes("authentic")) {
-            answer = "Consumers can use our Verification Portal. By querying a product ID, they can view the full history, the OCR data, and the immutable blockchain transaction hash.";
-        } else if (q.includes("hello") || q.includes("hi")) {
-            answer = "Hello! I am the AgriCert AI Assistant. How can I help you today? You can ask me about the certification process, quality standards, auctions, blockchain, or verification.";
-        }
-
-        res.json({ answer });
-    } catch (error) {
-        console.error("Chatbot Error:", error);
-        res.status(500).json({ error: "Server Error" });
+// Rule-based NLP responses
+const responses = {
+    certify: {
+        keywords: ['certify', 'certification', 'certify crops', 'how to certify', 'certifier', 'inspection'],
+        answer: 'To certify crops on AgriCert: 1) A farmer submits a crop batch with inspection documents. 2) A certified certifier scans the document using OCR. 3) The certifier reviews the results and either approves or rejects the batch. 4) Approved batches are recorded on the Polygon blockchain for tamper-proof verification.'
+    },
+    auction: {
+        keywords: ['auction', 'bid', 'bidding', 'how do auctions work', 'buy', 'sell', 'real-time'],
+        answer: 'Auctions on AgriCert: 1) Farmers start auctions for certified crop batches and set a starting price. 2) Distributors and consumers can place bids in real-time using our live bidding engine. 3) The highest bidder wins when the farmer ends the auction. 4) All auction data is transparent and traceable.'
+    },
+    verify: {
+        keywords: ['verify', 'authenticity', 'verify authenticity', 'check product', 'trace', 'traceability', 'blockchain'],
+        answer: 'To verify product authenticity: 1) Go to the Consumer Verification page. 2) Enter the Product ID (batch ID). 3) You will see the full supply chain: farmer details, certifier info, OCR inspection data, blockchain transaction hash, and auction results. Everything is stored on the Polygon blockchain for transparency.'
+    },
+    register: {
+        keywords: ['register', 'sign up', 'create account', 'join'],
+        answer: 'To register on AgriCert: Go to the registration page and enter your name, email, password, and select your role (farmer, certifier, distributor, or consumer). Each role has specific permissions on the platform.'
+    },
+    batch: {
+        keywords: ['batch', 'crop', 'submit', 'upload', 'add crop'],
+        answer: 'To submit a crop batch: 1) Log in as a farmer. 2) Navigate to your dashboard and click "Submit Batch". 3) Fill in crop name, quantity, and location. 4) Upload your inspection document (image or PDF). 5) Your batch will be submitted for certifier review.'
     }
+};
+
+// @route   POST /api/chatbot/ask
+// @desc    Simple rule-based chatbot
+router.post('/ask', (req, res) => {
+    const { question } = req.body;
+
+    if (!question) {
+        return res.status(400).json({ msg: 'Please provide a question' });
+    }
+
+    const lowerQuestion = question.toLowerCase();
+
+    // Find matching response
+    for (const key of Object.keys(responses)) {
+        const entry = responses[key];
+        const matched = entry.keywords.some(kw => lowerQuestion.includes(kw));
+        if (matched) {
+            return res.json({ answer: entry.answer, topic: key });
+        }
+    }
+
+    // Default fallback
+    res.json({
+        answer: 'I can help you with: How to certify crops, How auctions work, How to verify product authenticity, How to register, and How to submit crop batches. Try asking about any of these topics!',
+        topic: 'unknown'
+    });
 });
 
 module.exports = router;

@@ -2,6 +2,13 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Upload, FileText, CheckCircle, ShieldCheck, Box, Search } from 'lucide-react';
 
+const API = 'http://localhost:5000';
+
+const getAuthHeader = () => {
+    const token = localStorage.getItem('token');
+    return token ? { Authorization: `Bearer ${token}` } : {};
+};
+
 const CertifierDashboard = () => {
     const [batches, setBatches] = useState([]);
     const [selectedBatch, setSelectedBatch] = useState(null);
@@ -32,16 +39,15 @@ const CertifierDashboard = () => {
     const currentStepIndex = getCurrentStepIndex();
 
     useEffect(() => {
-        // In a real app, fetch batches pending certification for this certifier
-        // Mocking an initial fetch
         fetchPendingBatches();
     }, []);
 
     const fetchPendingBatches = async () => {
         try {
-            const res = await axios.get('http://localhost:5000/api/batches'); // Example endpoint
-            const pending = res.data.filter(b => b.status === 'Submitted' || b.status === 'Under Inspection');
-            setBatches(pending);
+            const res = await axios.get(`${API}/api/batches/pending`, {
+                headers: getAuthHeader()
+            });
+            setBatches(res.data);
         } catch (err) {
             console.error(err);
         }
@@ -58,18 +64,25 @@ const CertifierDashboard = () => {
     };
 
     const handleOcrScan = async () => {
-        if (!selectedFile) return;
+        if (!selectedFile && !selectedBatch?.documentUrl) return;
         setIsScanning(true);
 
-        const formData = new FormData();
-        formData.append('certificate', selectedFile);
-        // if we had an inspectionId we would send it here
-
         try {
-            const res = await axios.post('http://localhost:5000/api/ocr/scan', formData, {
-                headers: { 'Content-Type': 'multipart/form-data' }
-            });
-            setOcrData(res.data.extractedData);
+            let res;
+            if (selectedFile) {
+                const formData = new FormData();
+                formData.append('document', selectedFile);
+                res = await axios.post(`${API}/api/ocr/scan`, formData, {
+                    headers: { ...getAuthHeader(), 'Content-Type': 'multipart/form-data' }
+                });
+            } else {
+                // Use existing document from the batch
+                res = await axios.post(`${API}/api/ocr/scan`,
+                    { existingFilePath: selectedBatch.documentUrl },
+                    { headers: { ...getAuthHeader(), 'Content-Type': 'application/json' } }
+                );
+            }
+            setOcrData(res.data.ocrData);
         } catch (error) {
             console.error('OCR Error', error);
             alert('Failed to scan document');
@@ -83,27 +96,46 @@ const CertifierDashboard = () => {
         setIsApproving(true);
 
         try {
-            const res = await axios.post('http://localhost:5000/api/blockchain/store', {
+            const res = await axios.post(`${API}/api/certifications/approve`, {
                 batchId: selectedBatch._id,
-                certData: {
-                    productId: selectedBatch._id,
-                    productType: selectedBatch.productType,
-                    qaResults: ocrData,
-                    certifierId: "certifier_123" // from auth context normally
-                }
+                ocrData: ocrData
+            }, {
+                headers: getAuthHeader()
             });
 
-            setBlockchainHash(res.data.hash);
+            setBlockchainHash(res.data.batch?.blockchainHash || 'stored');
 
             // Update local UI
             const updatedBatches = batches.filter(b => b._id !== selectedBatch._id);
             setBatches(updatedBatches);
 
         } catch (error) {
-            console.error('Blockchain Error', error);
-            alert('Failed to store on blockchain');
+            console.error('Certification Error', error);
+            alert(error.response?.data?.msg || 'Failed to approve certification');
         } finally {
             setIsApproving(false);
+        }
+    };
+
+    const handleReject = async () => {
+        if (!selectedBatch) return;
+        try {
+            await axios.post(`${API}/api/certifications/reject`, {
+                batchId: selectedBatch._id,
+                reason: 'Quality standards not met'
+            }, {
+                headers: getAuthHeader()
+            });
+            const updatedBatches = batches.filter(b => b._id !== selectedBatch._id);
+            setBatches(updatedBatches);
+            setSelectedBatch(null);
+            setOcrData(null);
+            setBlockchainHash(null);
+            setSelectedFile(null);
+            alert('Batch rejected successfully');
+        } catch (error) {
+            console.error('Rejection Error', error);
+            alert(error.response?.data?.msg || 'Failed to reject batch');
         }
     };
 
@@ -130,7 +162,7 @@ const CertifierDashboard = () => {
                                     className={`p-4 cursor-pointer hover:bg-green-50 transition-colors ${selectedBatch?._id === batch._id ? 'bg-green-50 border-l-4 border-green-500' : ''}`}
                                 >
                                     <div className="flex justify-between items-start mb-1">
-                                        <h4 className="font-medium text-gray-900">{batch.productType}</h4>
+                                        <h4 className="font-medium text-gray-900">{batch.cropName}</h4>
                                         <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
                                             {batch.status}
                                         </span>
@@ -181,6 +213,28 @@ const CertifierDashboard = () => {
                             {/* Step 1: Upload */}
                             {!ocrData && (
                                 <div className="space-y-6">
+                                    {/* Show existing document from batch if available */}
+                                    {selectedBatch.documentUrl && !selectedFile && (
+                                        <div className="flex flex-col items-center animate-fadeIn">
+                                            <p className="text-sm text-gray-600 mb-2">Batch has an uploaded document:</p>
+                                            <div className="w-full max-w-sm rounded-lg overflow-hidden border border-gray-200 shadow-sm">
+                                                <img src={`${API}${selectedBatch.documentUrl}`} alt="Batch Document" className="w-full h-auto" />
+                                            </div>
+                                            <button
+                                                onClick={handleOcrScan}
+                                                disabled={isScanning}
+                                                className="mt-4 w-full flex justify-center items-center gap-2 py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+                                            >
+                                                {isScanning ? (
+                                                    <><div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div> Extracting Data...</>
+                                                ) : (
+                                                    <><Search size={18} /> Run OCR on Batch Document</>
+                                                )}
+                                            </button>
+                                            <p className="text-xs text-gray-400 mt-3">Or upload a different document below:</p>
+                                        </div>
+                                    )}
+
                                     <div className="border-2 border-dashed border-gray-300 rounded-lg p-10 flex flex-col items-center justify-center text-center hover:bg-gray-50 transition-colors">
                                         <Upload size={40} className="text-gray-400 mb-4" />
                                         <p className="text-sm text-gray-600 font-medium">Upload Lab/Quality Certificate</p>
@@ -226,7 +280,7 @@ const CertifierDashboard = () => {
                                             <FileText size={20} className="text-blue-500" /> Extracted Quality Data
                                         </h4>
                                         <div className="grid grid-cols-2 gap-4 mb-6">
-                                            {Object.entries(ocrData).map(([key, value]) => (
+                                            {Object.entries(ocrData).filter(([key]) => key !== 'rawText').map(([key, value]) => (
                                                 <div key={key} className="bg-white p-3 rounded-md border border-gray-100 shadow-sm">
                                                     <span className="block text-xs text-gray-500 uppercase font-semibold mb-1">{key}</span>
                                                     <span className="block text-sm text-gray-900 font-medium">{value}</span>
@@ -234,7 +288,7 @@ const CertifierDashboard = () => {
                                             ))}
                                         </div>
 
-                                        {/* --- NEW ML BONUS FEATURE --- */}
+                                        {/* --- ML BONUS FEATURE --- */}
                                         <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg p-4 border border-indigo-100 flex items-start gap-4">
                                             <div className="bg-indigo-100 p-2 rounded-full text-indigo-600 mt-1">
                                                 <CheckCircle size={20} />
@@ -255,7 +309,10 @@ const CertifierDashboard = () => {
                                     </div>
 
                                     <div className="flex gap-4">
-                                        <button className="flex-1 py-3 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none">
+                                        <button
+                                            onClick={handleReject}
+                                            className="flex-1 py-3 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none"
+                                        >
                                             Reject
                                         </button>
                                         <button

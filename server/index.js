@@ -1,28 +1,35 @@
-const inspectionRoutes = require('./routes/inspections');
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
+const morgan = require('morgan');
 const mongoose = require('mongoose');
 const path = require('path');
-const fs = require('fs'); // File system to create folders
-const http = require('http'); // Required for Socket.io
-const { initSocket } = require('./services/socket'); // Import socket service
+const fs = require('fs');
+const http = require('http');
+const { initSocket } = require('./services/socket');
+const errorHandler = require('./middleware/errorHandler');
 
 // Import Routes
 const authRoutes = require('./routes/auth');
 const batchRoutes = require('./routes/batches');
-// --- NEW ROUTES ---
 const ocrRoutes = require('./routes/ocr');
+const certificationRoutes = require('./routes/certifications');
+const inspectionRoutes = require('./routes/inspections');
 const blockchainRoutes = require('./routes/blockchain');
+const auctionRoutes = require('./routes/auction');
 const verifyRoutes = require('./routes/verify');
 const chatbotRoutes = require('./routes/chatbot');
-const auctionRoutes = require('./routes/auction');
+const timelineRoutes = require('./routes/timeline');
+const verifyIntegrityRoutes = require('./routes/verifyIntegrity');
+const systemRoutes = require('./routes/system');
 
 const app = express();
-const server = http.createServer(app); // Wrap express app into HTTP server
+const server = http.createServer(app);
 const PORT = process.env.PORT || 5000;
 
-// Initialize Socket.io
+// Initialize Socket.IO
 initSocket(server);
 
 // Ensure "uploads" folder exists
@@ -31,32 +38,48 @@ if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir);
 }
 
-// Middleware
+// ========== SECURITY MIDDLEWARE ==========
+app.use(helmet());
 app.use(cors());
 app.use(express.json());
 
-// Make the "uploads" folder public so frontend can see images
+// Rate limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100,
+  message: { msg: 'Too many requests from this IP, please try again after 15 minutes' }
+});
+app.use('/api/', limiter);
+
+// ========== LOGGING ==========
+app.use(morgan('dev'));
+
+// ========== STATIC FILES ==========
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// Database Connection
-console.log(process.env.MONGO_URI)
+// ========== DATABASE ==========
 mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log("✅ MongoDB Connected"))
-  .catch((err) => console.error("❌ MongoDB Connection Error:", err.message));
+  .then(() => console.log('✅ MongoDB Connected'))
+  .catch((err) => console.error('❌ MongoDB Connection Error:', err.message));
 
-// Routes
+// ========== ROUTES ==========
 app.use('/api/auth', authRoutes);
-app.use('/api/batches', batchRoutes); // <-- NEW LINE
-app.use('/api/inspections', inspectionRoutes);
-
-// --- MOUNT NEW ROUTES ---
+app.use('/api/batches', batchRoutes);
 app.use('/api/ocr', ocrRoutes);
+app.use('/api/certifications', certificationRoutes);
+app.use('/api/inspections', inspectionRoutes);
 app.use('/api/blockchain', blockchainRoutes);
+app.use('/api/auction', auctionRoutes);
 app.use('/api/verify', verifyRoutes);
 app.use('/api/chatbot', chatbotRoutes);
-app.use('/api/auction', auctionRoutes);
+app.use('/api/timeline', timelineRoutes);
+app.use('/api/verify-integrity', verifyIntegrityRoutes);
+app.use('/api/system', systemRoutes);
 
-// Use server.listen instead of app.listen for Socket.io support
+// ========== CENTRALIZED ERROR HANDLER ==========
+app.use(errorHandler);
+
+// ========== START SERVER ==========
 server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`🚀 Server running on port ${PORT}`);
 });

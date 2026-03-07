@@ -3,6 +3,13 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { Package, Gavel, MapPin, Calendar, ExternalLink } from 'lucide-react';
 
+const API = 'http://localhost:5000';
+
+const getAuthHeader = () => {
+    const token = localStorage.getItem('token');
+    return token ? { Authorization: `Bearer ${token}` } : {};
+};
+
 const AuctionMarketplace = ({ user }) => {
     const [activeAuctions, setActiveAuctions] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -18,7 +25,9 @@ const AuctionMarketplace = ({ user }) => {
 
     const fetchAuctions = async () => {
         try {
-            const res = await axios.get('http://localhost:5000/api/auction/list');
+            const res = await axios.get(`${API}/api/auction/list`, {
+                headers: getAuthHeader()
+            });
             setActiveAuctions(res.data);
         } catch (err) {
             console.error('Failed to fetch auctions', err);
@@ -55,7 +64,7 @@ const AuctionMarketplace = ({ user }) => {
                         <div key={batch._id} className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow flex flex-col slideUp">
                             <div className="bg-gradient-to-r from-gray-900 to-gray-800 p-5 text-white flex justify-between items-center">
                                 <div>
-                                    <h3 className="font-bold text-lg">{batch.productType}</h3>
+                                    <h3 className="font-bold text-lg">{batch.batchId?.cropName || batch.cropName || 'Unknown'}</h3>
                                     <p className="text-gray-400 text-xs mt-1">ID: {batch._id.substring(0, 8)}...</p>
                                 </div>
                                 <div className="flex items-center gap-1 bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-xs font-bold border border-green-500/30">

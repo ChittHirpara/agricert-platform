@@ -1,71 +1,47 @@
-require('dotenv').config();
+require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 
-const DEMO_USERS = [
-    {
-        username: "DemoFarmer",
-        email: "farmer@demo.com",
-        password: "demo123",
-        role: "exporter" // Mapped to Farmer in our domain
-    },
-    {
-        username: "DemoCertifier",
-        email: "certifier@demo.com",
-        password: "demo123",
-        role: "qa" // Mapped to Certifier in our domain
-    },
-    {
-        username: "DemoDistributor",
-        email: "distributor@demo.com",
-        password: "demo123",
-        role: "importer" // Mapped to Distributor in our domain
-    },
-    {
-        username: "DemoConsumer",
-        email: "consumer@demo.com",
-        password: "demo123",
-        role: "importer" // Consumer doesn't have a rigid backend role initially, but importer works to access public routes
-    }
+const demoUsers = [
+    { name: 'Demo Farmer', email: 'farmer@demo.com', password: 'password123', role: 'farmer' },
+    { name: 'Demo Certifier', email: 'certifier@demo.com', password: 'password123', role: 'certifier' },
+    { name: 'Demo Distributor', email: 'distributor@demo.com', password: 'password123', role: 'distributor' },
+    { name: 'Demo Consumer', email: 'consumer@demo.com', password: 'password123', role: 'consumer' }
 ];
 
-async function seedDatabase() {
+const seedDemoUsers = async () => {
     try {
-        console.log("🔄 Connecting to MongoDB...");
         await mongoose.connect(process.env.MONGO_URI);
-        console.log("✅ Connected.");
+        console.log('MongoDB Connected for seeding...');
 
-        for (const userData of DEMO_USERS) {
-            console.log(`Processing demo user: ${userData.email}...`);
-
-            let user = await User.findOne({ email: userData.email });
-            if (user) {
-                console.log(`   User ${userData.email} already exists. Updating password to ensure sync...`);
-            } else {
-                console.log(`   User ${userData.email} does not exist. Creating...`);
-                user = new User({
-                    username: userData.username,
-                    email: userData.email,
-                    role: userData.role,
-                    walletAddress: `did:ethr:0x${Math.random().toString(16).slice(2)}`
-                });
+        for (const demoUser of demoUsers) {
+            const existingUser = await User.findOne({ email: demoUser.email });
+            if (existingUser) {
+                console.log(`User ${demoUser.email} already exists, skipping.`);
+                continue;
             }
 
-            // Ensure password is correct and hashed
             const salt = await bcrypt.genSalt(10);
-            user.password = await bcrypt.hash(userData.password, salt);
+            const hashedPassword = await bcrypt.hash(demoUser.password, salt);
+
+            const user = new User({
+                name: demoUser.name,
+                email: demoUser.email,
+                password: hashedPassword,
+                role: demoUser.role
+            });
 
             await user.save();
-            console.log(`✅ Synced ${userData.email}`);
+            console.log(`✅ Created user: ${demoUser.email} (${demoUser.role})`);
         }
 
-        console.log("🎉 Demo accounts seeding complete!");
+        console.log('\n🎉 Demo user seeding complete!');
         process.exit(0);
-    } catch (error) {
-        console.error("❌ Error seeding database:", error);
+    } catch (err) {
+        console.error('❌ Seeding error:', err.message);
         process.exit(1);
     }
-}
+};
 
-seedDatabase();
+seedDemoUsers();

@@ -8,7 +8,7 @@ import { Tractor, Microscope, Ship, ArrowLeft, User, Mail, Lock, Facebook, Chrom
 
 const Login = ({ setUser }) => {
   const [isLogin, setIsLogin] = useState(false); // Default to Sign Up
-  const [formData, setFormData] = useState({ username: '', email: '', password: '', confirmPassword: '' });
+  const [formData, setFormData] = useState({ name: '', email: '', password: '', confirmPassword: '' });
   const [loading, setLoading] = useState(false);
   const [selectedRole, setSelectedRole] = useState('farmer');
   const navigate = useNavigate();
@@ -33,11 +33,11 @@ const Login = ({ setUser }) => {
     setLoading(true);
     const endpoint = isLogin ? '/api/auth/login' : '/api/auth/register';
     const payload = isLogin
-      ? { username: formData.username, password: formData.password }
-      : { ...formData, role: selectedRole };
+      ? { email: formData.email, password: formData.password }
+      : { name: formData.name, email: formData.email, password: formData.password, role: selectedRole };
 
     try {
-      const res = await axios.post(`https://agriqcert-1.onrender.com${endpoint}`, payload);
+      const res = await axios.post(`http://localhost:5000${endpoint}`, payload);
       const user = res.data.user;
 
       if (isLogin && user.role !== selectedRole) {
@@ -46,7 +46,7 @@ const Login = ({ setUser }) => {
         return;
       }
 
-      toast.success(`Welcome, ${user.username}!`);
+      toast.success(`Welcome, ${user.name}!`);
       localStorage.setItem('token', res.data.token);
       localStorage.setItem('user', JSON.stringify(user));
       setUser(user);
@@ -63,24 +63,23 @@ const Login = ({ setUser }) => {
   const loginDemoAccount = async (roleType) => {
     setLoading(true);
 
-    // Map role to seeded demo account username from our script
     const demoMapping = {
-      farmer: { username: "DemoFarmer", expectedRole: "exporter" },
-      certifier: { username: "DemoCertifier", expectedRole: "qa" },
-      distributor: { username: "DemoDistributor", expectedRole: "importer" },
-      consumer: { username: "DemoConsumer", expectedRole: "importer" }, // Consumer uses importer rights temporarily
+      farmer: { email: "farmer@demo.com" },
+      certifier: { email: "certifier@demo.com" },
+      distributor: { email: "distributor@demo.com" },
+      consumer: { email: "consumer@demo.com" },
     };
 
     const targetDemo = demoMapping[roleType];
 
     try {
       const res = await axios.post(`http://localhost:5000/api/auth/login`, {
-        username: targetDemo.username,
-        password: "demo123"
+        email: targetDemo.email,
+        password: "password123"
       });
 
       const user = res.data.user;
-      toast.success(`Demo Access: Welcome ${user.username}!`);
+      toast.success(`Demo Access: Welcome ${user.name}!`);
       localStorage.setItem('token', res.data.token);
       localStorage.setItem('user', JSON.stringify(user));
       setUser(user);
@@ -160,10 +159,14 @@ const Login = ({ setUser }) => {
           <form onSubmit={handleSubmit} className="space-y-4">
 
             <div className="bg-white/20 rounded-2xl p-1 flex items-center border border-white/10 focus-within:bg-white/30 transition-colors">
-              <div className="p-3 text-white/60"><User size={20} /></div>
+              <div className="p-3 text-white/60">{isLogin ? <Mail size={20} /> : <User size={20} />}</div>
               <input
-                type="text" name="username" value={formData.username} onChange={handleChange} required
-                placeholder="Full Name / ID"
+                type={isLogin ? "email" : "text"}
+                name={isLogin ? "email" : "name"}
+                value={isLogin ? formData.email : formData.name}
+                onChange={handleChange}
+                required
+                placeholder={isLogin ? "Email Address" : "Full Name"}
                 className="bg-transparent w-full outline-none text-white placeholder-white/50 font-medium h-10"
               />
             </div>
