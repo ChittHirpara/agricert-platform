@@ -1,7 +1,9 @@
-import QADashboard from '../components/QADashboard';
 import { LogOut } from 'lucide-react';
-import ExporterDashboard from '../components/ExporterDashboard';
-import ImporterDashboard from '../components/ImporterDashboard';
+
+// --- NEW HACKATHON DASHBOARDS ---
+import FarmerDashboard from './FarmerDashboard';
+import CertifierDashboard from './CertifierDashboard';
+import AuctionMarketplace from './AuctionMarketplace';
 
 const Dashboard = ({ user, setUser }) => {
   const handleLogout = () => {
@@ -21,13 +23,13 @@ const Dashboard = ({ user, setUser }) => {
             </div>
             <h1 className="text-xl font-bold text-gray-800 tracking-tight">AgriQCert <span className="text-gray-400 font-normal">Portal</span></h1>
           </div>
-          
+
           <div className="flex items-center gap-6">
             <div className="text-right hidden md:block">
               <p className="text-sm font-bold text-gray-800">{user.username}</p>
               <p className="text-xs text-gray-500 uppercase tracking-wider">{user.role}</p>
             </div>
-            <button 
+            <button
               onClick={handleLogout}
               className="p-2 hover:bg-red-50 text-gray-500 hover:text-red-500 rounded-full transition-all"
               title="Logout"
@@ -39,13 +41,12 @@ const Dashboard = ({ user, setUser }) => {
       </nav>
 
       {/* Main Content Area */}
-      <main className="max-w-7xl mx-auto p-6 md:p-8">
-        {/* Render Dashboard based on Role */}
-        {user.role === 'exporter' && <ExporterDashboard user={user} />}
-        {user.role === 'qa' && <QADashboard user={user} />}
+      <main className="max-w-7xl mx-auto p-0 md:p-8">
+        {/* Render Dashboard based on Hackathon Role Map */}
+        {user.role === 'exporter' && <FarmerDashboard user={user} />}
+        {user.role === 'qa' && <CertifierDashboard user={user} />}
+        {user.role === 'importer' && <AuctionMarketplace user={user} />}
         {user.role === 'admin' && <div className="text-center py-20">Admin Dashboard Coming Soon...</div>}
-        {/* Importer View */}
-{user.role === 'importer' && <ImporterDashboard user={user} />}
       </main>
     </div>
   );

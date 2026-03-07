@@ -1,66 +1,77 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const { body, validationResult } = require('express-validator');
 const User = require('../models/User');
+const { protect } = require('../middleware/authMiddleware');
 
 const router = express.Router();
 
 // @route   POST /api/auth/register
-// @desc    Direct Register (No OTP)
-router.post('/register', async (req, res) => {
-  const { username, email, password, role } = req.body;
+router.post('/register', [
+  body('name', 'Name is required').not().isEmpty(),
+  body('email', 'Please include a valid email').isEmail(),
+  body('password', 'Please enter a password with 6 or more characters').isLength({ min: 6 }),
+  body('role', 'Valid role is required').isIn(['farmer', 'certifier', 'distributor', 'consumer', 'admin'])
+], async (req, res, next) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+
+  const { name, email, password, role } = req.body;
 
   try {
-    // 1. Check if user exists
-    let user = await User.findOne({ $or: [{ email }, { username }] });
-    if (user) {
-      return res.status(400).json({ msg: 'User or Email already exists' });
-    }
+    let user = await User.findOne({ email });
+    if (user) return res.status(400).json({ msg: 'User already exists' });
 
-    // 2. Create new user
-    user = new User({
-      username,
-      email,
-      password,
-      role,
-      walletAddress: `did:ethr:0x${Math.random().toString(16).slice(2)}`
-    });
+    user = new User({ name, email, password, role });
 
-    // 3. Hash Password
     const salt = await bcrypt.genSalt(10);
     user.password = await bcrypt.hash(password, salt);
     await user.save();
 
-    // 4. Auto Login
-    const payload = { user: { id: user.id, role: user.role, username: user.username } };
+    const payload = { user: { id: user.id, role: user.role } };
     jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1d' }, (err, token) => {
       if (err) throw err;
-      res.json({ token, user: { id: user.id, username: user.username, role: user.role } });
+      res.json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role } });
     });
-
   } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server Error');
+    next(err);
   }
 });
 
 // @route   POST /api/auth/login
-router.post('/login', async (req, res) => {
-  const { username, password } = req.body; // We use username to login
+router.post('/login', [
+  body('email', 'Please include a valid email').isEmail(),
+  body('password', 'Password is required').exists()
+], async (req, res, next) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+
+  const { email, password } = req.body;
   try {
-    const user = await User.findOne({ username });
+    const user = await User.findOne({ email });
     if (!user) return res.status(400).json({ msg: 'Invalid Credentials' });
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(400).json({ msg: 'Invalid Credentials' });
 
-    const payload = { user: { id: user.id, role: user.role, username: user.username } };
+    const payload = { user: { id: user.id, role: user.role } };
     jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1d' }, (err, token) => {
       if (err) throw err;
-      res.json({ token, user: { id: user.id, username: user.username, role: user.role } });
+      res.json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role } });
     });
   } catch (err) {
-    res.status(500).send('Server Error');
+    next(err);
+  }
+});
+
+// @route   GET /api/auth/me
+router.get('/me', protect, async (req, res, next) => {
+  try {
+    const user = await User.findById(req.user.id).select('-password');
+    res.json(user);
+  } catch (err) {
+    next(err);
   }
 });
 

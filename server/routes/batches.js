@@ -1,138 +1,93 @@
 const express = require('express');
-const router = express.Router();
 const multer = require('multer');
 const path = require('path');
 const Batch = require('../models/Batch');
-const User = require('../models/User');
+const { protect, authorize } = require('../middleware/authMiddleware');
 
-// Configure Storage for Files (Lab Reports/Images)
+const router = express.Router();
+
+// Multer Config
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
+  destination: function (req, file, cb) {
     cb(null, 'uploads/');
   },
-  filename: (req, file, cb) => {
-    cb(null, Date.now() + path.extname(file.originalname));
+  filename: function (req, file, cb) {
+    cb(null, `${Date.now()}-${file.originalname}`);
   }
 });
 
-const upload = multer({ storage: storage });
+const upload = multer({
+  storage: storage,
+  limits: { fileSize: 5000000 }, // 5MB limit
+  fileFilter: function (req, file, cb) {
+    const filetypes = /jpeg|jpg|png|pdf/;
+    const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = filetypes.test(file.mimetype);
+    if (mimetype && extname) return cb(null, true);
+    cb(new Error('Images and PDFs only!'));
+  }
+});
 
 // @route   POST /api/batches
-// @desc    Create a new batch with attachments
-router.post('/', upload.array('attachments'), async (req, res) => {
+// @desc    Submit a new crop batch for certification
+router.post('/', protect, authorize('farmer'), upload.single('document'), async (req, res, next) => {
   try {
-    // "req.body" has the text data
-    // "req.files" has the uploaded files
-    const { exporterId, productType, quantity, location, destination } = req.body;
+    const { cropName, quantity, location } = req.body;
+    let documentUrl = req.file ? `/uploads/${req.file.filename}` : null;
 
-    const attachments = req.files.map(file => ({
-      fileUrl: `/uploads/${file.filename}`,
-      fileType: file.mimetype
-    }));
+    if (!documentUrl) {
+      return res.status(400).json({ msg: 'Document upload is required' });
+    }
 
     const newBatch = new Batch({
-      exporter: exporterId,
-      productType,
+      farmerId: req.user.id,
+      cropName,
       quantity,
       location,
-      destination,
-      attachments
+      documentUrl
     });
 
     const batch = await newBatch.save();
-    res.json(batch);
-
+    res.status(201).json(batch);
   } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server Error');
+    next(err);
   }
 });
 
-// @route   GET /api/batches/:userId
-// @desc    Get all batches for a specific user
-router.get('/:userId', async (req, res) => {
+// @route   GET /api/batches/my
+// @desc    Get batches for logged in farmer
+router.get('/my', protect, authorize('farmer'), async (req, res, next) => {
   try {
-    const batches = await Batch.find({ exporter: req.params.userId }).sort({ createdAt: -1 });
+    const batches = await Batch.find({ farmerId: req.user.id }).sort({ createdAt: -1 });
     res.json(batches);
   } catch (err) {
-    res.status(500).send('Server Error');
+    next(err);
   }
 });
 
-// @route   GET /api/batches/verify/:id
-// @desc    Get a single batch by ID (Public Access)
-router.get('/verify/:id', async (req, res) => {
+// @route   GET /api/batches/pending
+// @desc    Get pending batches for certifiers
+router.get('/pending', protect, authorize('certifier'), async (req, res, next) => {
   try {
-    const batch = await Batch.findById(req.params.id).populate('exporter', 'username');
+    const batches = await Batch.find({ status: 'pending' }).populate('farmerId', ['name', 'email']).sort({ createdAt: 1 });
+    res.json(batches);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// @route   GET /api/batches/:id
+// @desc    Get batch by ID
+router.get('/:id', protect, async (req, res, next) => {
+  try {
+    const batch = await Batch.findById(req.params.id)
+      .populate('farmerId', ['name', 'email'])
+      .populate('auctionWinner', ['name', 'email']);
+
     if (!batch) return res.status(404).json({ msg: 'Batch not found' });
     res.json(batch);
   } catch (err) {
-    res.status(500).send('Server Error');
-  }
-});
-// @route   DELETE /api/batches/:id
-// @desc    Delete a batch
-router.delete('/:id', async (req, res) => {
-  try {
-    const batch = await Batch.findById(req.params.id);
-    
-    if (!batch) {
-      return res.status(404).json({ msg: 'Batch not found' });
-    }
-
-    // In a real app, check if user owns the batch, but for hackathon, just delete
-    await Batch.findByIdAndDelete(req.params.id);
-    
-    res.json({ msg: 'Batch removed' });
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server Error');
-  }
-});
-// @route   GET /api/batches/market/all
-// @desc    Get ONLY Certified batches for Importers to buy
-router.get('/market/all', async (req, res) => {
-  try {
-    const batches = await Batch.find({ status: 'Certified' }).populate('exporter', 'username');
-    res.json(batches);
-  } catch (err) {
-    res.status(500).send('Server Error');
-  }
-});
-// @route   PUT /api/batches/order/:id
-// @desc    Importer places an order
-router.put('/order/:id', async (req, res) => {
-  try {
-    const { buyerId } = req.body;
-    await Batch.findByIdAndUpdate(req.params.id, { 
-      orderedBy: buyerId,
-      orderStatus: 'Pending'
-    });
-    res.json({ msg: 'Order Placed' });
-  } catch (err) {
-    res.status(500).send('Server Error');
-  }
-});
-
-// @route   PUT /api/batches/ship/:id
-// @desc    Exporter approves shipment
-router.put('/ship/:id', async (req, res) => {
-  try {
-    await Batch.findByIdAndUpdate(req.params.id, { orderStatus: 'Shipped' });
-    res.json({ msg: 'Shipment Approved' });
-  } catch (err) {
-    res.status(500).send('Server Error');
-  }
-});
-
-// @route   PUT /api/batches/decline/:id
-// @desc    Exporter declines shipment
-router.put('/decline/:id', async (req, res) => {
-  try {
-    await Batch.findByIdAndUpdate(req.params.id, { orderStatus: 'Declined' });
-    res.json({ msg: 'Order Declined' });
-  } catch (err) {
-    res.status(500).send('Server Error');
+    next(err);
   }
 });
 

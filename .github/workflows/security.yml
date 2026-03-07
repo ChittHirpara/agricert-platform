@@ -1,0 +1,33 @@
+name: Security Audit Workflow
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  schedule:
+    - cron: '0 0 * * 0' # Run weekly
+
+jobs:
+  security-audit:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Use Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '20.x'
+
+    - name: Run npm audit in Client
+      run: |
+        cd client
+        npm install --package-lock-only
+        npm audit || true
+
+    - name: Run npm audit in Server
+      run: |
+        cd server
+        npm install --package-lock-only
+        npm audit || true

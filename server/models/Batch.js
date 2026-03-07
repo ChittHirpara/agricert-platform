@@ -1,25 +1,22 @@
 const mongoose = require('mongoose');
 
 const BatchSchema = new mongoose.Schema({
-  exporter: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  productType: { type: String, required: true },
+  farmerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  cropName: { type: String, required: true },
   quantity: { type: String, required: true },
   location: { type: String, required: true },
-  destination: { type: String, required: true },
-  status: { 
-    type: String, 
-    enum: ['Submitted', 'Under Inspection', 'Certified', 'Rejected'], 
-    default: 'Submitted' 
+  documentUrl: { type: String },
+  status: {
+    type: String,
+    enum: ['pending', 'certified', 'rejected'],
+    default: 'pending'
   },
-  // --- NEW FIELDS FOR ORDER SYSTEM ---
-  orderedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
-  orderStatus: { 
-    type: String, 
-    enum: ['None', 'Pending', 'Shipped', 'Declined'], 
-    default: 'None' 
+  blockchainHash: { type: String, default: null },
+  auctionStatus: {
+    type: String,
+    enum: ['pending', 'active', 'completed'],
+    default: 'pending'
   },
-  // -----------------------------------
-  attachments: [{ fileUrl: String, fileType: String }],
   createdAt: { type: Date, default: Date.now }
 });
 
