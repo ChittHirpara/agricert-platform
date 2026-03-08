@@ -1,14 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
 import { useNavigate } from 'react-router-dom';
-import { Package, Gavel, MapPin, Calendar, ExternalLink, ShieldCheck, TrendingUp, Search } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import {
+    Package, Gavel, MapPin, ExternalLink, ShieldCheck, TrendingUp,
+    Search, Leaf, ChevronRight, RefreshCw, Globe, Scale, Hash, Copy
+} from 'lucide-react';
+import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
+import toast from 'react-hot-toast';
+
+const ease = [0.16, 1, 0.3, 1];
+const SAGE = '#84B179';
 
 const AuctionMarketplace = ({ user }) => {
     const [activeAuctions, setActiveAuctions] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const navigate = useNavigate();
+    const { scrollY } = useScroll();
+    const navBg = useTransform(scrollY, [0, 50], ['rgba(6,12,5,0)', 'rgba(6,12,5,0.95)']);
 
     useEffect(() => {
         fetchAuctions();
@@ -20,247 +29,190 @@ const AuctionMarketplace = ({ user }) => {
         try {
             const res = await api.get('/api/auction/list');
             setActiveAuctions(res.data);
-        } catch (err) {
-            console.error('Failed to fetch auctions', err);
-        } finally {
-            setLoading(false);
-        }
+        } catch (err) { console.error(err); }
+        finally { setLoading(false); }
     };
 
-    const filteredAuctions = activeAuctions.filter(batch =>
-        (batch.batchId?.cropName || batch.cropName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-        batch._id.toLowerCase().includes(searchQuery.toLowerCase())
+    const filtered = activeAuctions.filter(b =>
+        (b.batchId?.cropName || b.cropName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        b._id.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
-    const containerVariants = {
-        hidden: { opacity: 0 },
-        visible: {
-            opacity: 1,
-            transition: {
-                staggerChildren: 0.1
-            }
-        }
-    };
-
-    const itemVariants = {
-        hidden: { opacity: 0, y: 20 },
-        visible: {
-            opacity: 1,
-            y: 0,
-            transition: { duration: 0.6, ease: [0.16, 1, 0.3, 1] }
-        }
-    };
-
     return (
-        <div className="min-h-screen bg-[#030603] text-white selection:bg-emerald-500/30 font-sans pb-20 relative overflow-hidden">
-
-            {/* Ambient Animated Background */}
-            <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(16,185,129,0.08)_0%,transparent_50%)]" />
-                <motion.div
-                    animate={{
-                        scale: [1, 1.2, 1],
-                        opacity: [0.1, 0.2, 0.1],
-                        x: [0, 100, 0]
-                    }}
-                    transition={{ duration: 25, repeat: Infinity, ease: "easeInOut" }}
-                    className="absolute top-[-10%] right-[-10%] w-[1000px] h-[1000px] bg-emerald-900/10 rounded-full blur-[150px]"
-                />
-                <motion.div
-                    animate={{
-                        scale: [1, 1.1, 1],
-                        opacity: [0.05, 0.15, 0.05],
-                        x: [0, -50, 0]
-                    }}
-                    transition={{ duration: 20, repeat: Infinity, ease: "easeInOut", delay: 5 }}
-                    className="absolute bottom-[-20%] left-[-10%] w-[800px] h-[800px] bg-green-900/5 rounded-full blur-[120px]"
-                />
-                <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-[0.02] mix-blend-overlay" />
+        <div className="min-h-screen bg-[#060c05] text-white font-sans overflow-x-hidden pb-20">
+            <div className="fixed inset-0 z-0 pointer-events-none">
+                <div className="absolute inset-0 opacity-35" style={{
+                    backgroundImage: 'radial-gradient(rgba(132,177,121,0.12) 1px, transparent 1px)',
+                    backgroundSize: '30px 30px',
+                }} />
+                <motion.div className="absolute top-0 right-0 w-[700px] h-[700px] rounded-full"
+                    style={{ background: 'radial-gradient(circle, rgba(132,177,121,0.05) 0%, transparent 70%)' }}
+                    animate={{ scale: [1, 1.1, 1] }}
+                    transition={{ duration: 18, repeat: Infinity, ease: 'easeInOut' }} />
             </div>
 
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 pt-16">
-
-                {/* Cinematic Header */}
-                <motion.div
-                    initial={{ opacity: 0, y: -20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="text-center mb-16"
-                >
-                    <div className="inline-flex flex-col items-center mb-6">
-                        <motion.div
-                            whileHover={{ scale: 1.05, rotate: 5 }}
-                            className="w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 mb-6 shadow-[0_0_30px_rgba(16,185,129,0.1)]"
-                        >
-                            <Gavel size={32} />
-                        </motion.div>
-                        <div className="flex flex-col items-center">
-                            <motion.span
-                                initial={{ opacity: 0, letterSpacing: "0.2em" }}
-                                animate={{ opacity: 1, letterSpacing: "0.5em" }}
-                                className="text-[10px] font-mono font-black text-emerald-500/60 uppercase tracking-[0.5em] mb-3"
-                            >
-                                Neural Trading Network
-                            </motion.span>
-                            <h1 className="text-5xl lg:text-6xl font-black text-white uppercase tracking-tighter italic">
-                                Live <span className="text-emerald-500">Marketplace</span>
-                            </h1>
-                            <div className="h-1 w-24 bg-emerald-500 mt-4 rounded-full shadow-[0_0_15px_rgba(16,185,129,0.5)]" />
-                        </div>
-                    </div>
-                    <p className="mt-6 text-gray-400 max-w-2xl mx-auto font-medium text-lg leading-relaxed">
-                        Access and participate in the world's most secure agricultural bidding protocol. Fully certified, fully transparent.
-                    </p>
-                </motion.div>
-
-                {/* Filter & Search Bar */}
-                <div className="mb-12 flex flex-col md:flex-row items-center justify-between gap-6">
-                    <div className="relative w-full md:max-w-md group">
-                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-500 group-focus-within:text-emerald-400 transition-colors">
-                            <Search size={18} />
-                        </div>
-                        <input
-                            type="text"
-                            placeholder="Locate yield via batch ID or crop type..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-6 text-sm font-medium focus:outline-none focus:border-emerald-500/50 focus:ring-4 focus:ring-emerald-500/10 transition-all placeholder:text-gray-600"
-                        />
-                    </div>
-
+            <motion.header style={{ background: navBg }} className="fixed top-0 left-0 right-0 z-50 backdrop-blur-xl">
+                <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-2 px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-full">
-                            <span className="relative flex h-2 w-2">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                        <div className="flex items-center gap-2.5">
+                            <div className="w-8 h-8 rounded-lg bg-sage-600/15 border border-sage-600/25 flex items-center justify-center">
+                                <Leaf size={15} className="text-sage-500" />
+                            </div>
+                            <span className="font-black">Agri<span className="text-sage-500">Cert</span></span>
+                        </div>
+                        <ChevronRight size={14} className="text-gray-600" />
+                        <span className="text-sm text-gray-500 font-medium">Live Marketplace</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <button onClick={fetchAuctions}
+                            className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/[0.04] border border-white/[0.06] hover:border-white/15 transition-colors">
+                            <RefreshCw size={13} className="text-gray-500" />
+                        </button>
+                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-sage-600/10 border border-sage-600/20">
+                            <span className="relative flex h-1.5 w-1.5">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-sage-400 opacity-75" />
+                                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-sage-600" />
                             </span>
-                            <span className="text-[10px] font-black uppercase tracking-widest text-emerald-400">
-                                {activeAuctions.length} Node(s) Active
-                            </span>
+                            <span className="text-[10px] font-bold text-sage-400 uppercase tracking-widest">{activeAuctions.length} Active</span>
                         </div>
                     </div>
                 </div>
+            </motion.header>
+
+            <div className="relative z-10 max-w-7xl mx-auto px-6 pt-28 pb-8">
+                <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.8, ease }} className="text-center mb-12">
+                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-sage-600/10 border border-sage-600/20 mb-5">
+                        <Gavel size={12} className="text-sage-500" />
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-sage-400">Neural Trading Network</span>
+                    </div>
+                    <h1 className="text-4xl sm:text-6xl font-black tracking-tight mb-4">
+                        Live <span className="text-transparent bg-clip-text bg-gradient-to-r from-sage-600 to-sage-300">Marketplace</span>
+                    </h1>
+                    <p className="text-gray-500 max-w-xl mx-auto text-sm leading-relaxed">
+                        Bid on certified agricultural lots in real time. Fully transparent, fully on-chain.
+                    </p>
+                </motion.div>
+
+                <div className="flex flex-col sm:flex-row items-center gap-4 mb-10">
+                    <div className="relative flex-1 w-full max-w-md group">
+                        <Search size={15} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-600 group-focus-within:text-sage-500 transition-colors" />
+                        <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
+                            placeholder="Search by crop or batch ID..."
+                            className="w-full bg-white/[0.04] border border-white/[0.07] rounded-xl py-3 pl-11 pr-4 text-sm text-white placeholder-gray-700 outline-none focus:border-sage-600/50 transition-all" />
+                    </div>
+                    <span className="text-xs text-gray-700 font-mono uppercase tracking-widest">Auto-refresh: 15s</span>
+                </div>
 
                 {loading ? (
-                    <div className="flex flex-col items-center justify-center p-20 gap-4">
-                        <div className="relative w-12 h-12">
-                            <div className="absolute inset-0 border-2 border-emerald-500/20 rounded-full" />
-                            <div className="absolute inset-0 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+                    <div className="flex flex-col items-center justify-center py-32 gap-4">
+                        <div className="relative w-10 h-10">
+                            <div className="absolute inset-0 border-2 border-sage-600/15 rounded-full" />
+                            <div className="absolute inset-0 border-2 border-sage-600 border-t-transparent rounded-full animate-spin" />
                         </div>
-                        <span className="text-[10px] font-mono font-black text-emerald-500/60 uppercase tracking-[0.3em] animate-pulse">Syncing Neural Data...</span>
+                        <span className="text-[10px] font-mono text-sage-600/50 uppercase tracking-widest animate-pulse">Syncing Market Data...</span>
                     </div>
-                ) : filteredAuctions.length === 0 ? (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        className="bg-white/5 backdrop-blur-3xl border border-white/10 rounded-[48px] p-20 text-center flex flex-col items-center justify-center"
-                    >
-                        <div className="w-20 h-20 rounded-3xl bg-white/5 flex items-center justify-center text-gray-600 mb-6">
-                            <Package size={40} className="opacity-20" />
+                ) : filtered.length === 0 ? (
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                        className="flex flex-col items-center py-28 rounded-2xl border border-white/[0.05] bg-white/[0.01] gap-4">
+                        <div className="w-16 h-16 flex items-center justify-center rounded-2xl border border-white/[0.06] bg-white/[0.03]">
+                            <Package size={28} strokeWidth={1} className="text-sage-600/25" />
                         </div>
-                        <h3 className="text-2xl font-black text-white uppercase tracking-tight">No Active Sessions</h3>
-                        <p className="text-gray-500 mt-2 max-w-sm mx-auto font-medium italic">
-                            The marketplace is currently silent. Secure certification protocols are pending.
+                        <p className="font-black text-white/20 text-sm uppercase tracking-widest">
+                            {searchQuery ? 'No matching auctions' : 'Market Silent'}
+                        </p>
+                        <p className="text-xs text-gray-700 max-w-xs text-center">
+                            {searchQuery ? 'Try a different search.' : 'No active auctions right now. Check back shortly.'}
                         </p>
                     </motion.div>
                 ) : (
                     <motion.div
-                        variants={containerVariants}
-                        initial="hidden"
-                        animate="visible"
-                        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
+                        initial="hidden" animate="visible"
+                        variants={{ visible: { transition: { staggerChildren: 0.08 } } }}
+                        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"
                     >
-                        {filteredAuctions.map((batch) => (
-                            <motion.div
-                                key={batch._id}
-                                variants={itemVariants}
-                                whileHover={{ y: -5 }}
-                                className="group relative"
-                            >
-                                <div className="absolute inset-0 bg-emerald-500/20 rounded-[40px] blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-
-                                <div className="relative bg-[#050A06] border border-white/10 rounded-[40px] overflow-hidden flex flex-col shadow-2xl transition-all duration-500 group-hover:border-emerald-500/30">
-
-                                    {/* Card Header Overlay */}
-                                    <div className="absolute top-0 inset-x-0 h-40 bg-gradient-to-b from-emerald-500/10 to-transparent pointer-events-none opacity-50" />
-
-                                    <div className="p-8 pb-4 relative z-10 flex justify-between items-start">
-                                        <div className="flex-1">
-                                            <div className="flex items-center gap-2 mb-2">
-                                                <div className="px-2 py-0.5 bg-emerald-500/10 border border-emerald-500/20 rounded text-[8px] font-black text-emerald-500 uppercase tracking-widest">
-                                                    Premium Grade
-                                                </div>
-                                            </div>
-                                            <h3 className="font-black text-2xl text-white tracking-tight uppercase group-hover:text-emerald-400 transition-colors">
-                                                {batch.batchId?.cropName || batch.cropName || 'Unknown Batch'}
-                                            </h3>
-                                            <p className="text-gray-500 font-mono text-[10px] mt-1 tracking-wider uppercase">Node: {batch._id.substring(0, 12)}</p>
-                                        </div>
-                                        <div className="flex items-center gap-1.5 bg-emerald-500/10 text-emerald-400 px-3 py-1.5 rounded-full text-[10px] font-black border border-emerald-500/20">
-                                            <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-ping"></span>
-                                            LIVE
-                                        </div>
-                                    </div>
-
-                                    <div className="px-8 py-6 flex-1 space-y-5 relative z-10">
-                                        <div className="flex items-center gap-4 group/item">
-                                            <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-gray-500 group-hover/item:text-emerald-400 group-hover/item:border-emerald-500/30 transition-all shadow-inner">
-                                                <Package size={18} />
-                                            </div>
-                                            <div>
-                                                <p className="text-[10px] font-mono text-emerald-500/40 uppercase tracking-widest leading-none mb-1">Total Yield</p>
-                                                <p className="text-sm font-bold text-white uppercase">{batch.quantity || '0 Units'}</p>
-                                            </div>
-                                        </div>
-
-                                        <div className="flex items-center gap-4 group/item">
-                                            <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-gray-500 group-hover/item:text-emerald-400 group-hover/item:border-emerald-500/30 transition-all shadow-inner">
-                                                <MapPin size={18} />
-                                            </div>
-                                            <div>
-                                                <p className="text-[10px] font-mono text-emerald-500/40 uppercase tracking-widest leading-none mb-1">Geographic Origin</p>
-                                                <p className="text-sm font-bold text-white uppercase truncate max-w-[180px]">{batch.location || 'Encrypted Territory'}</p>
-                                            </div>
-                                        </div>
-
-                                        <div className="flex items-center gap-4 group/item">
-                                            <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-gray-500 group-hover/item:text-emerald-400 group-hover/item:border-emerald-500/30 transition-all shadow-inner">
-                                                <TrendingUp size={18} />
-                                            </div>
-                                            <div>
-                                                <p className="text-[10px] font-mono text-emerald-500/40 uppercase tracking-widest leading-none mb-1">Live Valuation</p>
-                                                <p className="text-sm font-black text-emerald-500 uppercase">${(batch.highestBid || 500).toLocaleString()}</p>
-                                            </div>
-                                        </div>
-
-                                        {batch.blockchainHash && (
-                                            <div className="bg-emerald-500/5 p-4 rounded-2xl border border-emerald-500/10 flex items-center gap-3 mt-6 group/tx">
-                                                <ShieldCheck size={16} className="text-emerald-500/40 group-hover/tx:text-emerald-500 transition-colors" />
-                                                <div className="font-mono text-[9px] text-emerald-500/60 break-all overflow-hidden flex-1 group-hover/tx:text-emerald-400 transition-colors">
-                                                    {batch.blockchainHash.substring(0, 32)}...
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    <div className="p-6 pt-2">
-                                        <motion.button
-                                            whileTap={{ scale: 0.98 }}
-                                            onClick={() => navigate(`/auction/${batch._id}`)}
-                                            className="w-full relative group/btn overflow-hidden rounded-2xl h-16 bg-emerald-500 hover:bg-emerald-400 text-black font-black uppercase tracking-widest transition-all duration-300 shadow-[0_0_20px_rgba(16,185,129,0.2)] hover:shadow-[0_0_40px_rgba(16,185,129,0.4)]"
-                                        >
-                                            <span className="relative z-10 flex items-center justify-center gap-3">
-                                                Connect to Link <ExternalLink size={18} className="group-hover/btn:rotate-12 transition-transform" />
-                                            </span>
-                                            <div className="absolute inset-x-0 bottom-0 h-1 bg-black/20 group-hover/btn:h-2 transition-all" />
-                                        </motion.button>
-                                    </div>
-                                </div>
-                            </motion.div>
-                        ))}
+                        {filtered.map(batch => <AuctionCard key={batch._id} batch={batch} onEnter={() => navigate(`/auction/${batch._id}`)} />)}
                     </motion.div>
                 )}
             </div>
         </div>
+    );
+};
+
+const AuctionCard = ({ batch, onEnter }) => {
+    const cropName = batch.batchId?.cropName || batch.cropName || 'Unknown Batch';
+    const bid = batch.highestBid || batch.startingPrice || 500;
+    return (
+        <motion.div
+            variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.16, 1, 0.3, 1] } } }}
+            whileHover={{ y: -6 }}
+            className="group relative flex flex-col overflow-hidden rounded-2xl border border-white/[0.06] bg-[#080f07]/80 hover:border-sage-600/20 transition-all duration-500"
+        >
+            <div className="h-[2px] bg-gradient-to-r from-transparent via-sage-600/50 to-transparent" />
+            <div className="absolute top-4 right-4 z-10 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-sage-600/15 border border-sage-600/30">
+                <span className="w-1.5 h-1.5 rounded-full bg-sage-500 animate-pulse" />
+                <span className="text-[9px] font-bold text-sage-400 uppercase tracking-widest">Live</span>
+            </div>
+            <div className="absolute top-0 right-0 w-48 h-48 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"
+                style={{ background: 'radial-gradient(circle at top right, rgba(132,177,121,0.07), transparent 70%)' }} />
+            <div className="p-6 flex-1 relative z-10">
+                <div className="mb-5 pr-16">
+                    <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-sage-600/10 border border-sage-600/20 mb-2">
+                        <ShieldCheck size={10} className="text-sage-500" />
+                        <span className="text-[8px] font-bold text-sage-400 uppercase tracking-widest">Certified</span>
+                    </div>
+                    <h3 className="font-black text-xl text-white tracking-tight group-hover:text-sage-300 transition-colors">{cropName}</h3>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                        <p className="text-[10px] font-mono text-gray-700">ID: {batch._id.slice(0, 12)}...</p>
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                navigator.clipboard.writeText(batch._id);
+                                toast.success('Product ID copied to clipboard!');
+                            }}
+                            className="p-1 rounded-md bg-white/[0.03] border border-white/[0.06] hover:bg-sage-600/20 hover:text-sage-400 hover:border-sage-600/30 text-gray-500 transition-all"
+                            title="Copy full Product ID"
+                        >
+                            <Copy size={10} />
+                        </button>
+                    </div>
+                </div>
+                <div className="space-y-3 mb-5">
+                    {[
+                        { icon: Scale, label: 'Yield', value: batch.quantity || '—' },
+                        { icon: MapPin, label: 'Origin', value: batch.location || '—' },
+                        { icon: TrendingUp, label: 'Live Bid', value: `$${bid.toLocaleString()}`, accent: true },
+                    ].map(({ icon: Icon, label, value, accent }) => (
+                        <div key={label} className="flex items-center gap-3 p-2.5 rounded-xl border border-white/[0.04] bg-white/[0.015]">
+                            <div className="w-8 h-8 rounded-lg flex items-center justify-center border border-white/[0.06] bg-white/[0.03]">
+                                <Icon size={14} className={accent ? 'text-sage-500' : 'text-gray-600'} />
+                            </div>
+                            <div>
+                                <p className="text-[9px] text-gray-700 font-mono uppercase tracking-wider">{label}</p>
+                                <p className={`text-sm font-bold ${accent ? 'text-sage-400' : 'text-white'}`}>{value}</p>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+                {batch.blockchainHash && (
+                    <div className="flex items-start gap-2 p-2.5 rounded-xl border border-white/[0.04] bg-black/20 mb-2 group/hash">
+                        <Hash size={12} className="text-gray-700 mt-0.5 shrink-0" />
+                        <p className="text-[9px] font-mono text-gray-700 group-hover/hash:text-sage-500 transition-colors truncate">
+                            {batch.blockchainHash.slice(0, 32)}...
+                        </p>
+                    </div>
+                )}
+            </div>
+            <div className="p-4 pt-0 relative z-10">
+                <motion.button
+                    whileHover={{ scale: 1.02, boxShadow: '0 0 24px rgba(132,177,121,0.3)' }}
+                    whileTap={{ scale: 0.98 }} onClick={onEnter}
+                    className="w-full py-3.5 bg-sage-600 text-white rounded-xl font-black text-sm uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-sage-500 transition-all shadow-[0_0_16px_rgba(132,177,121,0.15)]"
+                >
+                    Enter Auction <ExternalLink size={14} />
+                </motion.button>
+            </div>
+        </motion.div>
     );
 };
 

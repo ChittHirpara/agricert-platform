@@ -4,8 +4,24 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ============================================
+   Sage Green Palette CSS Variables
+   #84B179 | #A2CB8B | #C7EABB | #E8F5BD
+   ============================================ */
 :root {
     font-family: 'Plus Jakarta Sans', sans-serif;
+
+    --sage-900: #3a5c35;
+    --sage-800: #4f7848;
+    --sage-700: #64935b;
+    --sage-600: #84B179;
+    /* Primary brand accent */
+    --sage-500: #A2CB8B;
+    /* Secondary / medium */
+    --sage-300: #C7EABB;
+    /* Soft highlight */
+    --sage-100: #E8F5BD;
+    /* Pale accent / backgrounds */
 }
 
 h1,
@@ -18,4 +34,35 @@ h4,
 
 .font-mono {
     font-family: 'JetBrains Mono', monospace;
+}
+
+/* Sage-tinted text selection */
+::selection {
+    background: rgba(132, 177, 121, 0.25);
+    color: #E8F5BD;
+}
+
+/* Sage scrollbar */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #84B179;
+    border-radius: 99px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #A2CB8B;
+}
+
+/* Sage focus rings */
+*:focus-visible {
+    outline: 2px solid #84B179;
+    outline-offset: 2px;
 }

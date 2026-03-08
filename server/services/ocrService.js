@@ -3,121 +3,214 @@ const sharp = require('sharp');
 const path = require('path');
 const fs = require('fs');
 
+// ── Image Pre-processing ─────────────────────────
 async function preprocessImage(inputPath) {
     const ext = path.extname(inputPath);
     const outputPath = inputPath.replace(ext, `-clean${ext}`);
 
     await sharp(inputPath)
+        .resize({ width: 2000, withoutEnlargement: false }) // Upscale small docs
         .grayscale()
         .normalize()
-        .sharpen()
-        .threshold(150)
+        .sharpen({ sigma: 1.5 })
+        .threshold(145)
         .toFile(outputPath);
 
     return outputPath;
 }
 
+// ── Text Normalisation ───────────────────────────
 function normalizeText(text) {
     return text
         .toLowerCase()
-        .replace(/\n/g, " ")
-        .replace(/\s+/g, " ")
+        .replace(/\n/g, ' ')
+        .replace(/\s+/g, ' ')
         .trim();
 }
 
-function getPrediction(data) {
-    let probability;
-    let suggestion;
+// ─────────────────────────────────────────────────
+// STRICT label-anchored extraction
+//
+// Rules (per spec):
+//   1. ONLY extract a value when its label is explicitly present
+//   2. Do NOT infer from standalone numbers
+//   3. Return null if the label is absent
+//   4. Never fabricate a value
+// ─────────────────────────────────────────────────
 
-    if (data.moisture < 13 && data.grade === "A") {
-        probability = 0.9;
-        suggestion = "Excellent crop quality";
-    } else if (data.moisture < 15) {
-        probability = 0.7;
-        suggestion = "Acceptable but store in dry conditions";
-    } else {
-        probability = 0.4;
-        suggestion = "High moisture risk";
-    }
-
-    return { probability, suggestion };
+/**
+ * Extract moisture
+ * Requires label: "moisture", "moisture level", or "moisture content"
+ * Proximity: value must appear within 25 chars of the label
+ * Returns e.g. "11%" or null
+ */
+function extractMoisture(text) {
+    const pattern = /moisture(?:\s*(?:level|content))?.{0,25}?(\d{1,2}(?:\.\d+)?)\s*%/i;
+    const m = text.match(pattern);
+    if (!m) return null;
+    const val = parseFloat(m[1]);
+    if (isNaN(val) || val < 0 || val > 100) return null;
+    return `${val}%`;
 }
 
+/**
+ * Extract weight
+ * Requires label: "weight", "total weight", or "net weight"
+ * Proximity: unit must appear within 25 chars of the label
+ * Returns e.g. "1200 kg" or null
+ */
+function extractWeight(text) {
+    const pattern = /(?:(?:total|net)\s+)?weight.{0,25}?(\d[\d.]*\s*(?:kg|tons?|metric\s*tons?))/i;
+    const m = text.match(pattern);
+    if (!m) return null;
+    return m[1].trim()
+        .replace(/\bmetric\s*tons?\b/i, 'Metric Tons')
+        .replace(/\btons?\b/i, 'Tons')
+        .replace(/\bkg\b/i, 'kg');
+}
+
+/**
+ * Extract grade
+ * Requires label: "grade" or "quality grade"
+ * Returns e.g. "A" or null
+ */
+function extractGrade(text) {
+    const pattern = /(?:quality\s+)?grade.{0,15}?([a-c])\b/i;
+    const m = text.match(pattern);
+    if (!m) return null;
+    return m[1].toUpperCase();
+}
+
+/**
+ * Extract inspection date
+ * Requires label: "inspection date" or "inspection_date" ONLY
+ * Bare "date" is intentionally excluded to avoid invoice/print dates
+ * Returns ISO date string e.g. "2026-03-08" or null
+ */
+function extractInspectionDate(text) {
+    const pattern = /inspection[_\s]date.{0,20}?([\d]{4}[-\/][\d]{2}[-\/][\d]{2})/i;
+    const m = text.match(pattern);
+    if (!m) return null;
+    return m[1].replace(/\//g, '-');
+}
+
+// ── Prediction Engine ────────────────────────────
+function getPrediction(moisture, grade) {
+    const m = parseFloat(moisture) || 14;
+    const g = (grade || 'B').toUpperCase();
+
+    if (m < 12 && g === 'A') {
+        return { probability: 0.96, suggestion: 'Excellent quality — premium market listing recommended.' };
+    } else if (m < 13 && ['A', 'B'].includes(g)) {
+        return { probability: 0.85, suggestion: 'High quality batch — suitable for standard certification.' };
+    } else if (m < 15) {
+        return { probability: 0.68, suggestion: 'Acceptable quality — store in dry conditions before distribution.' };
+    } else if (m < 18) {
+        return { probability: 0.45, suggestion: 'Elevated moisture detected — recommend re-drying before certification.' };
+    } else {
+        return { probability: 0.20, suggestion: 'High moisture risk — batch does not meet minimum certification standards.' };
+    }
+}
+
+// ── Core Extraction ──────────────────────────────
 const extractDataFromImage = async (imagePath, isDemo = false) => {
     let cleanImagePath = null;
+
     try {
-        console.log(`[OCR] Preprocessing image: ${imagePath} (isDemo: ${isDemo})`);
+        // ── File validation ──
+        if (!fs.existsSync(imagePath)) {
+            throw new Error('Document file not found on server');
+        }
+        const stats = fs.statSync(imagePath);
+        if (stats.size === 0) {
+            throw new Error('Document file is empty');
+        }
+
+        console.log(`[OCR] Processing: ${imagePath} | isDemo: ${isDemo} | size: ${stats.size} bytes`);
+
+        // ── Preprocess ──
         cleanImagePath = await preprocessImage(imagePath);
 
-        console.log(`[OCR] Running Tesseract on: ${cleanImagePath}`);
+        // ── Tesseract OCR ──
         const worker = await Tesseract.createWorker('eng');
         await worker.setParameters({
-            tessedit_char_whitelist: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789:%-kg "
+            // Wider whitelist to avoid stripping label chars like colon, slash, space
+            tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789:.%/-_ ',
+            preserve_interword_spaces: '1',
         });
 
         const { data } = await worker.recognize(cleanImagePath);
         const rawText = data.text;
+        const confidence = Math.round(data.confidence) || 0;
         await worker.terminate();
 
         const normalizedText = normalizeText(rawText);
-        console.log("[OCR] Normalized Raw extracted text:", normalizedText);
+        console.log('[OCR] Confidence:', confidence, '%');
+        console.log('[OCR] Normalized text:', normalizedText.slice(0, 400));
 
-        // Realistic agricultural keywords for validation
-        const keywords = ["moisture", "grade", "inspection", "certificate", "weight"];
-        const keywordCount = keywords.filter(word => normalizedText.includes(word)).length;
+        // ── Document validity check ──
+        // For real docs: require at least 2 of these key label words to be present
+        const LABEL_KEYWORDS = ['moisture', 'grade', 'weight', 'inspection', 'certificate', 'quality'];
+        const foundLabels = LABEL_KEYWORDS.filter(w => normalizedText.includes(w));
+        console.log('[OCR] Labels found:', foundLabels);
 
-        // Strict validation for real certificates
-        if (!isDemo && keywordCount < 1) {
-            throw new Error("Invalid certification document");
+        if (!isDemo && foundLabels.length < 2) {
+            throw new Error('Invalid certification document');
         }
 
-        const moistureRegex = /moisture[:\s]*([\d]{1,2})\s*%/i;
-        const weightRegex = /weight[:\s]*([\d]{1,6})\s*(kg|tons)/i;
-        const gradeRegex = /grade[:\s]*([a-z])/i;
-        const dateRegex = /date[:\s]*([\d]{4}-[\d]{2}-[\d]{2})/i;
-
-        const moistureMatch = normalizedText.match(moistureRegex);
-        const weightMatch = normalizedText.match(weightRegex);
-        const gradeMatch = normalizedText.match(gradeRegex);
-        const dateMatch = normalizedText.match(dateRegex);
-
-        // Data mapping with demo mode fallbacks
-        const parsedData = {
-            moisture: moistureMatch?.[1] ? `${moistureMatch[1]}%` : (isDemo ? "12%" : undefined),
-            weight: weightMatch ? `${weightMatch[1]} ${weightMatch[2]}` : (isDemo ? "1.2 Metric Tons" : undefined),
-            grade: gradeMatch?.[1]?.toUpperCase() || (isDemo ? "A" : undefined),
-            inspectionDate: dateMatch?.[1] || new Date().toISOString().split('T')[0]
+        // ── STRICT label-anchored field extraction ──
+        const extracted = {
+            moisture: extractMoisture(normalizedText),
+            weight: extractWeight(normalizedText),
+            grade: extractGrade(normalizedText),
+            inspection_date: extractInspectionDate(normalizedText),
         };
 
-        console.log("[OCR] Parsed:", parsedData);
+        console.log('[OCR] Extracted (strict):', extracted);
 
-        // Strict completeness check for real certificates
-        if (!isDemo && (!parsedData.moisture || !parsedData.weight || !parsedData.grade)) {
-            throw new Error("Incomplete OCR data");
+        // ── Demo mode: log only, no synthetic injection ──
+        // Values must come from OCR even in demo mode.
+        // If the demo document is correctly formatted, extraction will succeed.
+        if (isDemo) {
+            console.log('[OCR] Demo mode active — synthetic fallback values disabled');
         }
 
-        const predictionNumericData = {
-            moisture: moistureMatch ? parseFloat(moistureMatch[1]) : 12,
-            weight: weightMatch ? parseFloat(weightMatch[1]) : 1200,
-            grade: parsedData.grade || "A"
-        };
+        // ── Null guard: ensure every key is null (not undefined) ──
+        for (const key of Object.keys(extracted)) {
+            if (!extracted[key]) extracted[key] = null;
+        }
 
-        const prediction = getPrediction(predictionNumericData);
+        // ── Completeness check ──
+        // Hard-fail only if ALL three critical fields are null
+        const missing = ['moisture', 'weight', 'grade'].filter(k => !extracted[k]);
+        if (missing.length === 3) {
+            throw new Error(`Incomplete OCR data — missing: ${missing.join(', ')}`);
+        }
+
+        // ── Prediction ──
+        const prediction = getPrediction(
+            extracted.moisture ? parseFloat(extracted.moisture) : 14,
+            extracted.grade
+        );
+
+        // Use today as fallback date only if label was absent
+        const inspectionDate = extracted.inspection_date || new Date().toISOString().split('T')[0];
 
         return {
-            moisture: parsedData.moisture,
-            weight: parsedData.weight,
-            grade: parsedData.grade,
-            inspectionDate: parsedData.inspectionDate,
-            confidence: data.confidence || 91,
-            prediction: prediction
+            moisture: extracted.moisture,
+            weight: extracted.weight,
+            grade: extracted.grade,
+            inspectionDate: inspectionDate,
+            confidence: confidence,
+            prediction: prediction,
         };
+
     } catch (error) {
         console.error('[OCR] Error:', error.message);
         throw error;
     } finally {
         if (cleanImagePath && fs.existsSync(cleanImagePath)) {
-            try { fs.unlinkSync(cleanImagePath); } catch (e) { }
+            try { fs.unlinkSync(cleanImagePath); } catch (_) { }
         }
     }
 };

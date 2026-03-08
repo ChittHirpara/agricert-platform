@@ -1,6 +1,7 @@
 const express = require('express');
 const multer = require('multer');
 const path = require('path');
+const fs = require('fs');
 const { extractDataFromImage } = require('../services/ocrService');
 const { protect, authorize } = require('../middleware/authMiddleware');
 
@@ -41,18 +42,40 @@ router.post('/scan', protect, authorize('certifier'), upload.single('document'),
         }
 
         const { isDemo } = req.body;
-        const ocrData = await extractDataFromImage(req.file.path, isDemo === true || isDemo === 'true');
+        const uploadedFilePath = req.file.path;
+        const ocrData = await extractDataFromImage(uploadedFilePath, isDemo === true || isDemo === 'true');
+
+        // Cleanup: Remove original uploaded file after OCR to prevent disk bloat
+        try { fs.unlinkSync(uploadedFilePath); } catch (e) { console.warn('[OCR] Could not remove uploaded file:', e.message); }
+
         res.json({ ocrData, fileUrl: `/uploads/${req.file.filename}` });
     } catch (err) {
-        if (err.message === "Invalid certification document") {
+        // Cleanup on error too
+        if (req.file && req.file.path) {
+            try { fs.unlinkSync(req.file.path); } catch (e) { }
+        }
+        if (err.message === 'Invalid certification document') {
             return res.status(400).json({
-                error: "Invalid certification document",
-                message: "No crop quality data detected"
+                error: 'Invalid certification document',
+                message: 'The uploaded file does not appear to be a crop quality certificate. Please upload an image containing moisture, grade, and weight data.'
             });
         }
-        if (err.message === "Incomplete OCR data") {
+        if (err.message.startsWith('Incomplete OCR data')) {
             return res.status(400).json({
-                error: "Incomplete OCR data"
+                error: 'Incomplete OCR data',
+                message: `Could not extract all required fields. ${err.message}. Please ensure your certificate image is clear and well-lit.`
+            });
+        }
+        if (err.message === 'Document file not found on server') {
+            return res.status(404).json({
+                error: 'File not found',
+                message: 'The batch document could not be located on the server. Please re-upload.'
+            });
+        }
+        if (err.message === 'Document file is empty') {
+            return res.status(400).json({
+                error: 'Empty file',
+                message: 'The uploaded file is empty. Please upload a valid certificate image.'
             });
         }
         next(err);

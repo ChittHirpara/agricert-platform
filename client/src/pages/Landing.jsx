@@ -1,417 +1,769 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { motion, useScroll, useTransform, useInView } from 'framer-motion';
-import { Wheat, BrainCircuit, Link as LinkIcon, Gavel, ShoppingCart, ArrowRight, ChevronDown, Upload, FileSearch, Banknote, ShieldCheck, Zap, Layers, Leaf, Map, Database } from 'lucide-react';
+import { motion, useScroll, useTransform, useInView, AnimatePresence } from 'framer-motion';
+import {
+  Wheat, BrainCircuit, Link as LinkIcon, Gavel, ShoppingCart,
+  ArrowRight, ChevronDown, FileSearch, ShieldCheck, Zap, Leaf,
+  ScanLine, Globe, TrendingUp, Lock, Star, CheckCircle2,
+  Microscope, Package, Award, BarChart3, Users, Layers
+} from 'lucide-react';
 
-const supplyChainSteps = [
-  { id: 1, title: "Farm", icon: Wheat, desc: "Sourcing" },
-  { id: 2, title: "AI Certification", icon: BrainCircuit, desc: "Quality AI" },
-  { id: 3, title: "Blockchain Record", icon: LinkIcon, desc: "Immutable" },
-  { id: 4, title: "Live Auction", icon: Gavel, desc: "Market" },
-  { id: 5, title: "Verified Product", icon: ShoppingCart, desc: "Consumer" }
+// ─────────────────── Constants ───────────────────
+const ease = [0.16, 1, 0.3, 1];
+
+const NAV_LINKS = ['Platform', 'How It Works', 'Market', 'Security'];
+
+const STATS = [
+  { value: 99.9, suffix: '%', label: 'Uptime SLA' },
+  { value: 97, suffix: '%', label: 'AI Accuracy' },
+  { value: 500, suffix: 'k+', label: 'Transactions' },
+  { value: 124, suffix: '', label: 'Certifiers' },
 ];
 
-// Ultra-smooth easing curve
-const smoothCurve = [0.16, 1, 0.3, 1];
+const FEATURES = [
+  {
+    icon: BrainCircuit,
+    title: 'OCR AI Pipeline',
+    desc: 'Tesseract-powered document analysis extracts moisture, weight, and grade from lab reports in seconds — zero manual entry.',
+    tag: 'Computer Vision',
+  },
+  {
+    icon: Lock,
+    title: 'Cryptographic Seal',
+    desc: 'SHA-256 hash of every certification minted on Polygon Amoy. Immutable. Unforgeable. Verifiable in 3 seconds with a QR scan.',
+    tag: 'Blockchain',
+  },
+  {
+    icon: Gavel,
+    title: 'Live Auction Room',
+    desc: 'WebSocket-powered real-time bidding on certified batches. Distributors lock in competitive prices across global time zones.',
+    tag: 'Real-Time',
+  },
+  {
+    icon: ScanLine,
+    title: 'Instant QR Verify',
+    desc: 'Consumer scans a QR code, sees the full cryptographic audit trail and lab data in milliseconds. Zero friction, full trust.',
+    tag: 'Traceability',
+  },
+  {
+    icon: Globe,
+    title: 'Global Marketplace',
+    desc: 'Browse certified batches from 40+ countries. Filter by crop type, grade, origin, and sustainability metrics.',
+    tag: 'Network',
+  },
+  {
+    icon: BarChart3,
+    title: 'Analytics Dashboard',
+    desc: 'Real-time data on batch performance, certification velocity, and market trends — visualized in exportable charts.',
+    tag: 'Intelligence',
+  },
+];
 
-const TextReveal = ({ text, className, delay = 0 }) => {
-  const words = text.split(" ");
-  return (
-    <div className={`flex flex-wrap ${className}`}>
-      {words.map((word, i) => (
-        <motion.span
-          key={i}
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1.2, delay: delay + i * 0.08, ease: smoothCurve }}
-          className="mr-3 block mb-1"
-        >
-          {word === "Agriculture," || word === "AI" || word === "Blockchain." ? (
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-400 via-emerald-300 to-teal-200 drop-shadow-sm">
-              {word}
-            </span>
-          ) : word}
-        </motion.span>
-      ))}
-    </div>
-  );
-};
+const HOW_IT_WORKS = [
+  { num: '01', icon: Wheat, title: 'Farmer Registers Batch', desc: 'Upload crop metadata, origin, and inspection documents directly from the field via mobile or desktop.' },
+  { num: '02', icon: Microscope, title: 'AI OCR Inspection', desc: 'Our engine scans lab reports, extracts quality parameters, and produces an AI grade prediction.' },
+  { num: '03', icon: Lock, title: 'Certifier Signs On-Chain', desc: 'Accredited QA agencies approve the batch. A cryptographic hash is minted on Polygon — permanent and tamper-proof.' },
+  { num: '04', icon: Gavel, title: 'Live Auction Begins', desc: 'Certified batches enter the real-time marketplace. Distributors bid via WebSocket, prices settle at market rate.' },
+  { num: '05', icon: CheckCircle2, title: 'Consumer Verifies', desc: 'Scan the product QR code to instantly verify authenticity, view the full supply chain, and check the on-chain record.' },
+];
 
-const AnimatedCounter = ({ from = 0, to, duration = 3, suffix = "" }) => {
-  const [count, setCount] = useState(from);
+const TESTIMONIALS = [
+  { name: 'Rajiv Mehta', role: 'Export Manager, GreenHarvest Ltd.', rating: 5, text: 'AgriCert cut our certification time from 10 days to 36 hours. Customs clearance is now seamless.' },
+  { name: 'Dr. Priya Shankar', role: 'Chief Quality Officer, SafeGrain Agency', rating: 5, text: 'The OCR pipeline eliminates manual data entry errors. Our audit trail is airtight and instantly provable.' },
+  { name: 'Liu Wei', role: 'Senior Buyer, Pacific Imports Co.', rating: 5, text: 'I verify every shipment with a QR scan before payment. This is the future of agricultural trade.' },
+];
+
+// ─────────────────── Small Reusable Components ───────────────────
+const AnimatedCounter = ({ to, suffix = '', duration = 2.5 }) => {
+  const [count, setCount] = useState(0);
   const ref = useRef(null);
-  const inView = useInView(ref, { once: true, margin: "-50px" });
-
+  const inView = useInView(ref, { once: true });
   useEffect(() => {
-    if (inView) {
-      let startTimestamp = null;
-      const step = (timestamp) => {
-        if (!startTimestamp) startTimestamp = timestamp;
-        const progress = Math.min((timestamp - startTimestamp) / (duration * 1000), 1);
-        // Cubic ease out
-        const easeOut = 1 - Math.pow(1 - progress, 3);
-        setCount(Math.floor(easeOut * (to - from) + from));
-        if (progress < 1) {
-          window.requestAnimationFrame(step);
-        }
-      };
-      window.requestAnimationFrame(step);
-    }
-  }, [inView, to, from, duration]);
-
+    if (!inView) return;
+    let start = null;
+    const step = (ts) => {
+      if (!start) start = ts;
+      const progress = Math.min((ts - start) / (duration * 1000), 1);
+      const easeOut = 1 - Math.pow(1 - progress, 3);
+      setCount(Math.floor(easeOut * to));
+      if (progress < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }, [inView, to, duration]);
   return <span ref={ref}>{count}{suffix}</span>;
 };
 
-// Simplified Blob for better performance
-const FloatingBlob = ({ className, delay = 0, duration = 15, animateTo }) => (
-  <motion.div
-    className={`absolute rounded-full mix-blend-screen filter blur-[120px] opacity-[0.2] pointer-events-none ${className}`}
-    animate={{ x: animateTo.x, y: animateTo.y }}
-    transition={{ duration, repeat: Infinity, repeatType: 'reverse', ease: "easeInOut", delay }}
-  />
+const Tag = ({ children }) => (
+  <span className="inline-block px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest bg-sage-600/15 text-sage-500 border border-sage-600/20">
+    {children}
+  </span>
 );
 
+const StarRating = ({ rating }) => (
+  <div className="flex gap-0.5">
+    {Array.from({ length: rating }).map((_, i) => (
+      <Star key={i} size={12} className="text-sage-500 fill-sage-500" />
+    ))}
+  </div>
+);
+
+// ─────────────────── Main Component ───────────────────
 const Landing = () => {
   const { scrollYProgress, scrollY } = useScroll();
-  const opacityHero = useTransform(scrollY, [0, 600], [1, 0]);
-  const lineDraw = useTransform(scrollY, [0, 800], ["0%", "100%"]); // Sync line with scroll
+  const [activeStep, setActiveStep] = useState(0);
+  const [navScrolled, setNavScrolled] = useState(false);
+  const heroOpacity = useTransform(scrollY, [0, 500], [1, 0]);
+  const heroY = useTransform(scrollY, [0, 500], [0, -60]);
+
+  useEffect(() => {
+    const unsub = scrollY.on('change', (v) => setNavScrolled(v > 20));
+    return unsub;
+  }, [scrollY]);
+
+  useEffect(() => {
+    const id = setInterval(() => setActiveStep(s => (s + 1) % HOW_IT_WORKS.length), 3000);
+    return () => clearInterval(id);
+  }, []);
 
   return (
-    <div className="min-h-screen bg-[#030603] text-white font-sans overflow-x-hidden selection:bg-green-500/30">
+    <div className="min-h-screen bg-[#060c05] text-white font-sans overflow-x-hidden">
 
+      {/* ── Scroll Progress Bar ── */}
       <motion.div
-        className="fixed top-0 left-0 right-0 h-1 bg-gradient-to-r from-green-500 via-teal-400 to-emerald-500 origin-left z-[100]"
+        className="fixed top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-sage-600 via-sage-500 to-sage-300 origin-left z-[200]"
         style={{ scaleX: scrollYProgress }}
       />
 
-      {/* Extremely subtle ambient grid */}
-      <div className="fixed inset-0 z-0 pointer-events-none">
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(34,197,94,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(34,197,94,0.02)_1px,transparent_1px)] bg-[size:3rem_3rem] md:bg-[size:4rem_4rem]"></div>
-        <div className="absolute inset-0 bg-gradient-to-t from-[#030603] via-transparent to-[#030603] opacity-80"></div>
-        <div className="absolute inset-0 bg-gradient-to-r from-[#030603] via-transparent to-[#030603] opacity-60"></div>
-
-        <FloatingBlob className="top-[-10%] right-[10%] w-[500px] h-[500px] bg-green-700" delay={0} duration={12} animateTo={{ x: [0, -30, 0], y: [0, 50, 0] }} />
-        <FloatingBlob className="bottom-[10%] left-[5%] w-[400px] h-[400px] bg-emerald-700" delay={2} duration={15} animateTo={{ x: [0, 50, 0], y: [0, -40, 0] }} />
+      {/* ── Background Canvas ── */}
+      <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
+        {/* Subtle dot grid */}
+        <div className="absolute inset-0" style={{
+          backgroundImage: 'radial-gradient(rgba(132,177,121,0.18) 1px, transparent 1px)',
+          backgroundSize: '36px 36px',
+        }} />
+        {/* Vignette */}
+        <div className="absolute inset-0 bg-gradient-to-b from-[#060c05] via-transparent to-[#060c05]" />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#060c05] via-transparent to-[#060c05]" />
+        {/* Floating glows */}
+        <motion.div
+          className="absolute -top-32 -right-32 w-[700px] h-[700px] rounded-full opacity-[0.07]"
+          style={{ background: 'radial-gradient(circle, #84B179 0%, transparent 70%)' }}
+          animate={{ scale: [1, 1.1, 1], rotate: [0, 10, 0] }}
+          transition={{ duration: 18, repeat: Infinity, ease: 'easeInOut' }}
+        />
+        <motion.div
+          className="absolute bottom-0 -left-32 w-[600px] h-[600px] rounded-full opacity-[0.06]"
+          style={{ background: 'radial-gradient(circle, #A2CB8B 0%, transparent 70%)' }}
+          animate={{ scale: [1, 1.15, 1], rotate: [0, -10, 0] }}
+          transition={{ duration: 22, repeat: Infinity, ease: 'easeInOut', delay: 4 }}
+        />
       </div>
 
-      {/* Navbar */}
+      {/* ════════════════════════════════════════
+          NAVBAR
+      ════════════════════════════════════════ */}
       <motion.nav
-        initial={{ y: -100 }} animate={{ y: 0 }} transition={{ duration: 1, ease: smoothCurve }}
-        className="fixed top-0 w-full z-50 bg-[#030603]/60 backdrop-blur-xl border-b border-white/5"
+        initial={{ y: -80, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.9, ease }}
+        className={`fixed top-0 w-full z-50 transition-all duration-500 ${navScrolled
+          ? 'bg-[#060c05]/90 backdrop-blur-2xl border-b border-sage-600/10 shadow-[0_4px_30px_rgba(0,0,0,0.4)]'
+          : 'bg-transparent'
+          }`}
       >
-        <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-          <Link to="/" className="flex items-center gap-3 cursor-pointer group">
-            <div className="relative">
-              <div className="absolute inset-0 bg-emerald-500 blur-lg opacity-30 group-hover:opacity-60 transition-opacity duration-700"></div>
-              <img src="/veridant-logo.png" alt="AgriCert Logo" className="relative w-10 h-10 object-contain rounded-xl shadow-xl group-hover:scale-110 transition-transform duration-500" />
+        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+          {/* Logo */}
+          <Link to="/" className="flex items-center gap-2.5 group">
+            <div className="relative w-9 h-9 flex items-center justify-center rounded-xl bg-sage-600/15 border border-sage-600/30 group-hover:border-sage-500/50 transition-all">
+              <Leaf size={18} className="text-sage-500" />
+              <div className="absolute inset-0 rounded-xl bg-sage-600/10 blur-md opacity-0 group-hover:opacity-100 transition-opacity" />
             </div>
-            <span className="text-xl font-black tracking-tight text-white italic">Agri<span className="text-emerald-400">Cert</span></span>
+            <span className="text-lg font-black tracking-tight">
+              Agri<span className="text-sage-500">Cert</span>
+            </span>
           </Link>
 
-          <div className="flex gap-6 items-center">
-            <Link to="/login" className="hidden sm:block text-sm font-semibold text-gray-400 hover:text-green-400 transition-colors">
-              Login
+          {/* Links */}
+          <div className="hidden md:flex items-center gap-8">
+            {NAV_LINKS.map((link) => (
+              <a
+                key={link}
+                href={`#${link.toLowerCase().replace(/ /g, '-')}`}
+                className="text-sm font-medium text-gray-400 hover:text-sage-400 transition-colors duration-300"
+              >
+                {link}
+              </a>
+            ))}
+          </div>
+
+          {/* CTA */}
+          <div className="flex items-center gap-3">
+            <Link to="/portal" className="hidden sm:block text-sm font-semibold text-gray-400 hover:text-white transition-colors">
+              Sign In
             </Link>
             <Link to="/portal">
-              <button className="relative group px-6 py-2.5 rounded-full overflow-hidden shadow-[0_0_20px_rgba(34,197,94,0.1)] hover:shadow-[0_0_30px_rgba(34,197,94,0.3)] transition-all duration-500 bg-[#08120B] border border-green-500/20">
-                <span className="absolute inset-0 bg-gradient-to-r from-green-600/20 to-emerald-500/20 group-hover:opacity-100 transition-opacity duration-500"></span>
-                <span className="relative z-10 text-white font-bold text-sm tracking-wide group-hover:text-green-300 transition-colors">Launch App</span>
-              </button>
+              <motion.button
+                whileHover={{ scale: 1.04 }}
+                whileTap={{ scale: 0.97 }}
+                className="px-5 py-2.5 rounded-xl bg-sage-600 text-white font-bold text-sm shadow-[0_0_20px_rgba(132,177,121,0.3)] hover:bg-sage-500 hover:shadow-[0_0_30px_rgba(162,203,139,0.4)] transition-all duration-300"
+              >
+                Get Started →
+              </motion.button>
             </Link>
           </div>
         </div>
       </motion.nav>
 
-      {/* --- HERO SECTION --- */}
-      <div className="relative z-10 min-h-screen pt-28 pb-10 flex flex-col justify-center overflow-hidden">
-        <motion.div style={{ opacity: opacityHero }} className="max-w-7xl mx-auto px-6 w-full flex flex-col lg:flex-row gap-16 lg:gap-8 items-center justify-center flex-1">
+      {/* ════════════════════════════════════════
+          HERO
+      ════════════════════════════════════════ */}
+      <section className="relative z-10 min-h-screen flex flex-col items-center justify-center pt-24 pb-16 px-6 text-center">
+        <motion.div style={{ opacity: heroOpacity, y: heroY }} className="max-w-5xl mx-auto">
 
-          {/* LEFT SIDE: Typography */}
-          <div className="flex-1 flex flex-col items-start text-left space-y-8 z-20 w-full lg:max-w-xl xl:max-w-2xl">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 1, delay: 0.1, ease: smoothCurve }}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-green-500/10 border border-green-500/20 backdrop-blur-md"
-            >
-              <span className="w-2 h-2 rounded-full bg-green-400 shadow-[0_0_8px_#4ade80]" animate={{ opacity: [1, 0.4, 1] }} transition={{ duration: 2, repeat: Infinity }}></span>
-              <span className="text-xs font-mono uppercase tracking-widest text-green-300/90 font-semibold">Live on Polygon Web3</span>
-            </motion.div>
+          {/* Live badge */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.2, ease }}
+            className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-sage-600/10 border border-sage-600/25 mb-8"
+          >
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-sage-500 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-sage-600" />
+            </span>
+            <span className="text-xs font-semibold font-mono uppercase tracking-widest text-sage-400">
+              Live · Polygon Web3 · 124 certifiers
+            </span>
+          </motion.div>
 
-            <div className="text-5xl sm:text-6xl md:text-7xl lg:text-[4.5rem] xl:text-[5rem] font-extrabold tracking-tight leading-[1.05]">
-              <TextReveal text="Trust in Agriculture," delay={0.2} />
-              <TextReveal text="Powered by AI" delay={0.4} />
-              <TextReveal text="& Blockchain." delay={0.6} />
+          {/* Headline */}
+          <motion.h1
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 1.1, delay: 0.35, ease }}
+            className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black tracking-tight leading-[1.02] mb-6"
+          >
+            Agricultural Trust,
+            <br />
+            <span className="relative">
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-sage-600 via-sage-500 to-sage-300">
+                Cryptographically
+              </span>
+              <br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-sage-300 via-sage-500 to-sage-600">
+                Guaranteed.
+              </span>
+              {/* Underline glow */}
+              <motion.span
+                className="absolute -bottom-2 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-sage-500 to-transparent rounded-full"
+                initial={{ scaleX: 0 }} animate={{ scaleX: 1 }}
+                transition={{ duration: 1.4, delay: 1.2, ease }}
+              />
+            </span>
+          </motion.h1>
+
+          {/* Subheading */}
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 1, delay: 0.7, ease }}
+            className="text-lg md:text-xl text-gray-400 max-w-2xl mx-auto leading-relaxed mb-10"
+          >
+            From farm to consumer — AI-powered inspection, immutable blockchain certificates,
+            and live auctions in a single unified platform.
+          </motion.p>
+
+          {/* CTAs */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.9, delay: 0.9, ease }}
+            className="flex flex-col sm:flex-row items-center justify-center gap-4"
+          >
+            <Link to="/portal">
+              <motion.button
+                whileHover={{ scale: 1.04, boxShadow: '0 0 40px rgba(162,203,139,0.4)' }}
+                whileTap={{ scale: 0.97 }}
+                className="group flex items-center gap-3 px-8 py-4 bg-sage-600 text-white rounded-2xl font-bold text-base shadow-[0_0_24px_rgba(132,177,121,0.35)] transition-all duration-300 hover:bg-sage-500"
+              >
+                Launch Platform
+                <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+              </motion.button>
+            </Link>
+            <Link to="/consumer-verify">
+              <motion.button
+                whileHover={{ scale: 1.04 }}
+                whileTap={{ scale: 0.97 }}
+                className="group flex items-center gap-3 px-8 py-4 bg-white/5 border border-sage-600/25 text-white rounded-2xl font-bold text-base backdrop-blur-md hover:bg-white/8 hover:border-sage-500/40 transition-all duration-300"
+              >
+                <FileSearch size={18} className="text-sage-400" />
+                Verify a Product
+              </motion.button>
+            </Link>
+          </motion.div>
+
+          {/* Trusted by line */}
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 1.4, duration: 1 }}
+            className="mt-8 text-xs font-mono text-gray-600 uppercase tracking-widest"
+          >
+            Trusted by exporters in 40+ countries · ISO 9001 compatible
+          </motion.p>
+        </motion.div>
+
+        {/* Scroll cue */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 2 }}
+          className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5 text-gray-600 hover:text-sage-500 cursor-pointer transition-colors"
+          onClick={() => window.scrollTo({ top: window.innerHeight, behavior: 'smooth' })}
+        >
+          <span className="text-[9px] font-mono uppercase tracking-[0.25em]">Scroll</span>
+          <motion.div animate={{ y: [0, 5, 0] }} transition={{ repeat: Infinity, duration: 1.8 }}>
+            <ChevronDown size={18} />
+          </motion.div>
+        </motion.div>
+      </section>
+
+      {/* ════════════════════════════════════════
+          LOGO MARQUEE
+      ════════════════════════════════════════ */}
+      <div className="relative z-10 py-6 border-y border-white/[0.04] bg-[#06100a]/60 overflow-hidden">
+        <div className="absolute inset-y-0 left-0 w-32 bg-gradient-to-r from-[#060c05] to-transparent z-10" />
+        <div className="absolute inset-y-0 right-0 w-32 bg-gradient-to-l from-[#060c05] to-transparent z-10" />
+        <motion.div
+          animate={{ x: ['0%', '-50%'] }}
+          transition={{ duration: 28, repeat: Infinity, ease: 'linear' }}
+          className="flex gap-16 whitespace-nowrap w-max items-center"
+        >
+          {[...Array(2)].fill([
+            'TESSERACT OCR AI', 'POLYGON BLOCKCHAIN', 'REAL-TIME WEBSOCKETS',
+            'SHA-256 CERTIFICATES', 'ISO 9001 COMPLIANT', 'ZERO-TRUST SECURITY',
+            'LIVE AUCTION ROOM', 'GLOBAL TRACEABILITY',
+          ]).flat().map((item, i) => (
+            <div key={i} className="flex items-center gap-2.5 opacity-35">
+              <div className="w-1 h-1 rounded-full bg-sage-600" />
+              <span className="text-xs font-bold font-mono tracking-widest text-white">{item}</span>
+            </div>
+          ))}
+        </motion.div>
+      </div>
+
+      {/* ════════════════════════════════════════
+          STATS
+      ════════════════════════════════════════ */}
+      <section className="relative z-10 py-24 px-6">
+        <div className="max-w-6xl mx-auto">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            {STATS.map((s, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: '-60px' }}
+                transition={{ duration: 0.8, delay: i * 0.1, ease }}
+                className="group relative overflow-hidden rounded-2xl border border-white/[0.06] bg-white/[0.03] hover:bg-white/[0.05] hover:border-sage-600/25 transition-all duration-500 p-8 text-center"
+              >
+                <div className="text-4xl md:text-5xl font-black text-white mb-2 tracking-tighter">
+                  <AnimatedCounter to={s.value} suffix={s.suffix} />
+                </div>
+                <p className="text-xs font-mono text-gray-500 uppercase tracking-widest">{s.label}</p>
+                <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-sage-600/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ════════════════════════════════════════
+          FEATURES GRID
+      ════════════════════════════════════════ */}
+      <section id="platform" className="relative z-10 py-24 px-6">
+        <div className="max-w-6xl mx-auto">
+          {/* Header */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.9, ease }}
+            className="text-center mb-16"
+          >
+            <Tag>Platform Capabilities</Tag>
+            <h2 className="text-4xl md:text-5xl font-black mt-4 mb-4 tracking-tight">
+              Everything the chain needs.
+              <br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-sage-600 to-sage-300">Nothing it doesn't.</span>
+            </h2>
+            <p className="text-gray-400 max-w-xl mx-auto">
+              A vertically integrated platform built for modern agricultural trade — from the field to the import desk.
+            </p>
+          </motion.div>
+
+          {/* Cards */}
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {FEATURES.map((f, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 40 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: '-40px' }}
+                transition={{ duration: 0.8, delay: i * 0.08, ease }}
+                whileHover={{ y: -6 }}
+                className="group relative flex flex-col gap-4 p-7 rounded-2xl border border-white/[0.06] bg-white/[0.025] hover:bg-white/[0.045] hover:border-sage-600/25 transition-all duration-500 cursor-default overflow-hidden"
+              >
+                {/* Icon */}
+                <div className="w-12 h-12 flex items-center justify-center rounded-xl bg-sage-600/15 border border-sage-600/25 group-hover:bg-sage-600/25 transition-all duration-400">
+                  <f.icon size={22} className="text-sage-500" />
+                </div>
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="font-bold text-white text-lg">{f.title}</h3>
+                    <Tag>{f.tag}</Tag>
+                  </div>
+                  <p className="text-gray-400 text-sm leading-relaxed">{f.desc}</p>
+                </div>
+                {/* Corner glow */}
+                <div className="absolute top-0 right-0 w-24 h-24 opacity-0 group-hover:opacity-100 transition-opacity duration-700"
+                  style={{ background: 'radial-gradient(circle at top right, rgba(132,177,121,0.12), transparent 70%)' }} />
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ════════════════════════════════════════
+          HOW IT WORKS — Interactive Steps
+      ════════════════════════════════════════ */}
+      <section id="how-it-works" className="relative z-10 py-28 px-6 bg-[#050a04]/70">
+        <div className="max-w-6xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.9, ease }}
+            className="text-center mb-16"
+          >
+            <Tag>The Protocol</Tag>
+            <h2 className="text-4xl md:text-5xl font-black mt-4 mb-4 tracking-tight">
+              5 steps from field
+              <br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-sage-500 to-sage-300">to verified shelf.</span>
+            </h2>
+          </motion.div>
+
+          <div className="flex flex-col lg:flex-row gap-8 items-start">
+            {/* Step Nav */}
+            <div className="lg:w-2/5 flex flex-col gap-2">
+              {HOW_IT_WORKS.map((s, i) => (
+                <motion.button
+                  key={i}
+                  onClick={() => setActiveStep(i)}
+                  whileHover={{ x: 4 }}
+                  className={`relative flex items-center gap-4 p-5 rounded-2xl text-left transition-all duration-400 border ${activeStep === i
+                    ? 'bg-sage-600/15 border-sage-600/35 shadow-[0_0_20px_rgba(132,177,121,0.1)]'
+                    : 'bg-white/[0.02] border-white/[0.05] hover:border-white/10'
+                    }`}
+                >
+                  <div className={`shrink-0 w-10 h-10 rounded-xl flex items-center justify-center border transition-all duration-400 ${activeStep === i
+                    ? 'bg-sage-600/30 border-sage-500/50 text-sage-300'
+                    : 'bg-white/5 border-white/10 text-gray-500'
+                    }`}>
+                    <s.icon size={18} />
+                  </div>
+                  <div>
+                    <span className={`text-[10px] font-mono font-bold uppercase tracking-widest transition-colors ${activeStep === i ? 'text-sage-500' : 'text-gray-600'}`}>
+                      Step {s.num}
+                    </span>
+                    <p className={`font-bold text-sm transition-colors ${activeStep === i ? 'text-white' : 'text-gray-400'}`}>
+                      {s.title}
+                    </p>
+                  </div>
+                  {activeStep === i && (
+                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-8 bg-sage-500 rounded-full" />
+                  )}
+                </motion.button>
+              ))}
             </div>
 
-            <motion.p
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 1.2, delay: 0.9, ease: smoothCurve }}
-              className="text-lg md:text-xl text-gray-400/90 max-w-lg leading-relaxed pl-5 border-l-2 border-green-500/40"
-            >
-              The world's first decentralized supply chain protocol.
-              Powered by <strong className="text-white font-semibold flex items-center gap-1 inline-flex"><Zap size={16} className="text-green-400" />OCR AI Analysis</strong>, immutable ledgers, and real-time marketplaces.
-            </motion.p>
+            {/* Detail Panel */}
+            <div className="lg:w-3/5 sticky top-24">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={activeStep}
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.4, ease }}
+                  className="relative overflow-hidden rounded-3xl border border-sage-600/20 bg-gradient-to-br from-white/[0.04] to-sage-900/10 p-10"
+                >
+                  {/* Background decoration */}
+                  <div className="absolute top-0 right-0 w-64 h-64 opacity-[0.08]"
+                    style={{ background: 'radial-gradient(circle at top right, #84B179, transparent 60%)' }} />
 
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 1, delay: 1.1, ease: smoothCurve }}
-              className="flex flex-col sm:flex-row items-center gap-5 pt-4 w-full sm:w-auto"
-            >
-              <Link to="/portal" className="w-full sm:w-auto relative group">
-                <div className="absolute -inset-1 bg-gradient-to-r from-green-500 to-emerald-400 rounded-2xl blur opacity-20 group-hover:opacity-50 transition duration-700"></div>
-                <button className="relative w-full px-8 py-4 bg-[#050B07] border border-white/10 group-hover:border-green-500/40 rounded-2xl font-bold text-white transition-all duration-500 flex items-center justify-center gap-3">
-                  <span className="relative z-10 flex items-center gap-2 text-[15px]">Explore Platform <ArrowRight className="group-hover:translate-x-1.5 transition-transform duration-500 ease-out" size={18} /></span>
-                </button>
-              </Link>
-              <Link to="/verify" className="w-full sm:w-auto justify-center px-8 py-4 bg-transparent hover:bg-white/5 border border-white/10 rounded-2xl font-bold text-white transition-all flex items-center gap-3 text-[15px] group">
-                <FileSearch size={18} className="text-teal-400 group-hover:scale-110 transition-transform duration-500" /> Verify Product
-              </Link>
-            </motion.div>
+                  <div className="relative z-10">
+                    <div className="flex items-center gap-4 mb-6">
+                      <div className="w-16 h-16 rounded-2xl bg-sage-600/20 border border-sage-600/35 flex items-center justify-center">
+                        {React.createElement(HOW_IT_WORKS[activeStep].icon, { size: 28, className: 'text-sage-400' })}
+                      </div>
+                      <div>
+                        <span className="text-xs font-mono text-sage-600 uppercase tracking-widest font-bold">
+                          Stage {HOW_IT_WORKS[activeStep].num}
+                        </span>
+                        <h3 className="text-2xl font-black text-white">
+                          {HOW_IT_WORKS[activeStep].title}
+                        </h3>
+                      </div>
+                    </div>
+                    <p className="text-gray-300 text-lg leading-relaxed mb-8">
+                      {HOW_IT_WORKS[activeStep].desc}
+                    </p>
+
+                    {/* Progress dots */}
+                    <div className="flex gap-2">
+                      {HOW_IT_WORKS.map((_, i) => (
+                        <button
+                          key={i}
+                          onClick={() => setActiveStep(i)}
+                          className={`h-1.5 rounded-full transition-all duration-400 ${i === activeStep ? 'w-8 bg-sage-500' : 'w-1.5 bg-white/20'}`}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                </motion.div>
+              </AnimatePresence>
+            </div>
           </div>
+        </div>
+      </section>
 
-          {/* RIGHT SIDE: Perfected Supply Chain Timeline */}
-          <div className="flex-1 w-full lg:w-auto relative py-10 flex items-center justify-center min-h-[500px] z-10">
+      {/* ════════════════════════════════════════
+          ROLE CARDS
+      ════════════════════════════════════════ */}
+      <section id="market" className="relative z-10 py-28 px-6">
+        <div className="max-w-6xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.9, ease }}
+            className="text-center mb-16"
+          >
+            <Tag>Who It's For</Tag>
+            <h2 className="text-4xl md:text-5xl font-black mt-4 tracking-tight">
+              Built for the entire
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-sage-600 to-sage-300"> supply chain.</span>
+            </h2>
+          </motion.div>
 
-            {/* Strict Grid Layout for perfect alignment */}
-            <div className="relative z-20 w-fit mx-auto lg:ml-auto lg:mr-0 pl-12 sm:pl-0">
+          <div className="grid md:grid-cols-3 gap-6">
+            {[
+              {
+                icon: Wheat, role: 'Farmer / Exporter', color: 'from-sage-900/40 to-sage-800/20',
+                points: ['One-click batch creation', 'Real-time status tracking', 'Auction access for certified lots', 'Digital export certificates'],
+              },
+              {
+                icon: Award, role: 'QA Certifier Agency', color: 'from-sage-800/40 to-sage-700/20',
+                points: ['AI-assisted OCR inspection', 'Cryptographic signing tools', 'Immutable audit trail', 'Agency branded certificates'],
+              },
+              {
+                icon: Package, role: 'Importer / Customs', color: 'from-sage-700/30 to-sage-600/10',
+                points: ['3-second QR verification', 'On-chain record access', 'Direct purchase orders', 'Port-to-port shipment tracking'],
+              },
+            ].map((card, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 40 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.8, delay: i * 0.12, ease }}
+                whileHover={{ y: -8, scale: 1.01 }}
+                className={`relative overflow-hidden flex flex-col gap-6 p-8 rounded-3xl border border-sage-600/20 bg-gradient-to-br ${card.color} cursor-default group`}
+              >
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 rounded-2xl bg-sage-600/20 border border-sage-500/30 flex items-center justify-center">
+                    <card.icon size={24} className="text-sage-400" />
+                  </div>
+                  <h3 className="text-xl font-black text-white">{card.role}</h3>
+                </div>
+                <ul className="flex flex-col gap-3">
+                  {card.points.map((pt, j) => (
+                    <li key={j} className="flex items-center gap-3 text-sm text-gray-300">
+                      <CheckCircle2 size={15} className="text-sage-500 shrink-0" />
+                      {pt}
+                    </li>
+                  ))}
+                </ul>
+                <Link to="/portal">
+                  <button className="mt-auto flex items-center gap-2 text-sm font-bold text-sage-400 hover:text-sage-300 transition-colors group/btn">
+                    Get started <ArrowRight size={14} className="group-hover/btn:translate-x-1 transition-transform" />
+                  </button>
+                </Link>
+                {/* glow on hover */}
+                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700"
+                  style={{ background: 'radial-gradient(circle at 50% 0%, rgba(132,177,121,0.07), transparent 60%)' }} />
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
 
-              {/* The Golden Thread (Connected Line) */}
-              <div className="absolute top-8 bottom-8 left-4 sm:left-1/2 sm:-translate-x-1/2 w-[2px] bg-green-900/30 z-0">
-                <motion.div
-                  className="w-full bg-gradient-to-b from-green-400 via-emerald-400 to-teal-400 shadow-[0_0_15px_#4ade80]"
-                  style={{ height: lineDraw }}
-                />
-                {/* Floating glowing dot on path */}
-                <motion.div
-                  className="w-2 h-2 rounded-full bg-white shadow-[0_0_10px_#fff] absolute left-[-3px]"
-                  style={{ top: lineDraw }}
-                />
+      {/* ════════════════════════════════════════
+          TESTIMONIALS
+      ════════════════════════════════════════ */}
+      <section className="relative z-10 py-24 px-6 bg-[#050a04]/70">
+        <div className="max-w-6xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.9, ease }}
+            className="text-center mb-14"
+          >
+            <Tag>Testimonials</Tag>
+            <h2 className="text-4xl md:text-5xl font-black mt-4 tracking-tight">
+              Trusted by those
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-sage-500 to-sage-300"> who ship the world.</span>
+            </h2>
+          </motion.div>
+
+          <div className="grid md:grid-cols-3 gap-6">
+            {TESTIMONIALS.map((t, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 40 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.8, delay: i * 0.1, ease }}
+                className="flex flex-col gap-5 p-7 rounded-3xl border border-white/[0.06] bg-white/[0.025] hover:border-sage-600/20 transition-all duration-400"
+              >
+                <StarRating rating={t.rating} />
+                <p className="text-gray-300 text-sm leading-relaxed flex-1">"{t.text}"</p>
+                <div className="border-t border-white/5 pt-4">
+                  <p className="font-bold text-white text-sm">{t.name}</p>
+                  <p className="text-gray-500 text-xs mt-0.5">{t.role}</p>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ════════════════════════════════════════
+          SECURITY SECTION
+      ════════════════════════════════════════ */}
+      <section id="security" className="relative z-10 py-24 px-6">
+        <div className="max-w-5xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.9, ease }}
+            className="relative overflow-hidden rounded-3xl border border-sage-600/20 bg-gradient-to-br from-sage-900/30 to-[#060c05] p-12 md:p-16 text-center"
+          >
+            <div className="absolute inset-0 opacity-[0.06]"
+              style={{ background: 'radial-gradient(ellipse at 50% 0%, #84B179, transparent 60%)' }} />
+            <div className="relative z-10">
+              <div className="w-16 h-16 rounded-2xl bg-sage-600/20 border border-sage-600/30 flex items-center justify-center mx-auto mb-6">
+                <ShieldCheck size={28} className="text-sage-500" />
               </div>
-
-              <div className="flex flex-col gap-12 sm:gap-14 relative z-10 w-full sm:w-[420px]">
-                {supplyChainSteps.map((step, i) => (
-                  <motion.div
-                    key={step.id}
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    whileInView={{ opacity: 1, scale: 1 }}
-                    viewport={{ once: true, margin: "-50px" }}
-                    transition={{ duration: 0.8, delay: i * 0.15, ease: smoothCurve }}
-                    className={`relative flex items-center justify-between w-full group ${i % 2 !== 0 ? 'sm:flex-row-reverse' : ''}`}
-                  >
-
-                    {/* Desktop Text Block (Strict 40% width) */}
-                    <div className={`hidden sm:flex flex-col justify-center w-[40%] ${i % 2 !== 0 ? 'items-start text-left' : 'items-end text-right'}`}>
-                      <h3 className="text-lg font-bold text-white/90 group-hover:text-green-300 transition-colors drop-shadow-sm whitespace-nowrap">
-                        {step.title}
-                      </h3>
-                      <p className="text-[10px] text-green-500/80 font-mono uppercase tracking-widest mt-1">
-                        {step.desc}
-                      </p>
-                    </div>
-
-                    {/* Center Node (Strict Fixed Dimension) */}
-                    <div className="absolute left-[-2.5rem] sm:static sm:left-auto w-12 h-12 rounded-full bg-[#050A06] border border-green-500/30 flex items-center justify-center shrink-0 shadow-lg group-hover:border-green-400 group-hover:bg-green-900/40 group-hover:scale-110 group-hover:shadow-[0_0_30px_rgba(34,197,94,0.4)] transition-all duration-500 z-10">
-                      <step.icon size={18} className="text-green-400 group-hover:text-white transition-colors relative z-10" />
-                    </div>
-
-                    {/* Mobile Text block */}
-                    <div className="flex sm:hidden flex-col justify-center w-full pl-6">
-                      <h3 className="text-base font-bold text-white/90">{step.title}</h3>
-                      <p className="text-[10px] text-green-500/80 font-mono uppercase tracking-widest">{step.desc}</p>
-                    </div>
-
-                    {/* Spacer (Strict 40% width to balance) */}
-                    <div className="hidden sm:block w-[40%]"></div>
-
-                  </motion.div>
+              <Tag>Enterprise Security</Tag>
+              <h2 className="text-3xl md:text-5xl font-black mt-4 mb-4 tracking-tight">
+                Zero-trust architecture.
+                <br />
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-sage-500 to-sage-300">Production-grade from day one.</span>
+              </h2>
+              <p className="text-gray-400 max-w-xl mx-auto mb-10">
+                JWT + Bcrypt authentication, Helmet HTTP headers, rate limiting, CORS whitelisting, and Polygon-anchored cryptographic proofs.
+              </p>
+              <div className="flex flex-wrap justify-center gap-3">
+                {['JWT Auth', 'Bcrypt Hashing', 'Rate Limiting', 'CORS Policy', 'SHA-256 Proof', 'Polygon Anchor'].map((item) => (
+                  <span key={item} className="px-4 py-2 rounded-full border border-sage-600/25 bg-sage-600/10 text-sage-400 text-xs font-bold font-mono uppercase tracking-wide">
+                    {item}
+                  </span>
                 ))}
               </div>
             </div>
-
-          </div>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 2, duration: 1 }}
-          className="absolute bottom-4 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-gray-500 hover:text-green-400 cursor-pointer transition-colors z-20"
-          onClick={() => window.scrollTo({ top: window.innerHeight, behavior: 'smooth' })}
-        >
-          <span className="text-[10px] sm:text-xs font-mono uppercase tracking-widest">Discover</span>
-          <motion.div animate={{ y: [0, 5, 0] }} transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}>
-            <ChevronDown size={20} className="opacity-70" />
           </motion.div>
-        </motion.div>
-      </div>
-
-      {/* --- INFINITE MARQUEE --- */}
-      <div className="py-5 border-y border-white/[0.03] bg-[#050A06] overflow-hidden relative z-20">
-        <div className="absolute inset-y-0 left-0 w-32 bg-gradient-to-r from-[#030603] to-transparent z-10 pointer-events-none"></div>
-        <div className="absolute inset-y-0 right-0 w-32 bg-gradient-to-l from-[#030603] to-transparent z-10 pointer-events-none"></div>
-        <motion.div
-          animate={{ x: [0, -1000] }}
-          transition={{ repeat: Infinity, duration: 30, ease: "linear" }}
-          className="flex gap-24 whitespace-nowrap min-w-max px-10 items-center opacity-60"
-        >
-          {[...Array(2)].fill(['SECURED ALGORITHMS', 'TESSERACT OCR AI PROCESSING', 'POLYGON SMART CONTRACTS', 'REAL-TIME WEBSOCKET AUCTIONS', 'ZERO-TRUST ARCHITECTURE']).flat().map((text, i) => (
-            <div key={i} className="flex items-center gap-3">
-              <Zap className="text-green-600" size={14} />
-              <span className="text-sm font-bold font-mono tracking-widest text-white/70">{text}</span>
-            </div>
-          ))}
-        </motion.div>
-      </div>
-
-      {/* --- METRICS / COUNTERS --- */}
-      <div className="py-20 relative z-10 bg-[#020402]">
-        <div className="max-w-7xl mx-auto px-6 grid grid-cols-2 md:grid-cols-4 gap-12 text-center divide-white/5 md:divide-x">
-          {[
-            { label: "Network Uptime", value: 99.9, suffix: "%" },
-            { label: "AI Prediction Accuracy", value: 97, suffix: "%" },
-            { label: "Ledger Transactions", value: 500, suffix: "k+" },
-            { label: "Active Certifiers", value: 124, suffix: "" }
-          ].map((metric, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: "-50px" }}
-              transition={{ duration: 1, delay: i * 0.1, ease: smoothCurve }}
-              className="flex flex-col items-center"
-            >
-              <h4 className="text-4xl md:text-5xl lg:text-6xl font-black text-white drop-shadow-[0_0_15px_rgba(34,197,94,0.15)] tracking-tighter">
-                <AnimatedCounter from={0} to={metric.value} duration={2.5} suffix={metric.suffix} />
-              </h4>
-              <p className="text-gray-500 mt-3 font-mono text-[10px] md:text-[11px] uppercase tracking-widest bg-white/5 px-4 py-1.5 rounded-full">{metric.label}</p>
-            </motion.div>
-          ))}
         </div>
-      </div>
+      </section>
 
-      {/* --- SCROLL CHAPTERS --- */}
-      <div className="relative z-10 pt-20 pb-32 px-6 bg-[#030603]">
-        <div className="max-w-6xl mx-auto space-y-32">
-          <Chapter
-            num="01" title="Farm Registration"
-            desc="Farmers securely register their crop batches directly from the field. Important inspection documents detailing moisture content, weight, and geographical origin are uploaded instantly."
-            icon={Map} align="left"
-          />
-          <Chapter
-            num="02" title="OCR AI Pipeline"
-            desc="Certifiers scan the uploaded lab reports. Our advanced computer vision engine extracts critical metadata, evaluates quality, and auto-generates prediction grades without manual entry."
-            icon={Layers} align="right"
-          />
-          <Chapter
-            num="03" title="Immutable Ledger"
-            desc="Upon certifier approval, a unique cryptographic hash of the crop profile is minted directly onto the Polygon blockchain, ensuring the record can never be tampered with or forged."
-            icon={Database} align="left"
-          />
-          <Chapter
-            num="04" title="Live Marketplace"
-            desc="Certified batches automatically enter the real-time websocket auction room. Distributors and buyers lock in dynamic competitive bids via instant data streams."
-            icon={Banknote} align="right"
-          />
-          <Chapter
-            num="05" title="Consumer Traceability"
-            desc="Transparency at the store level. Consumers can enter the Product ID to trace its exact lineage, viewing the authenticated OCR lab results and the underlying immutable blockchain transaction hash."
-            icon={Leaf} align="left"
-          />
-        </div>
-      </div>
-
-      {/* --- FOOTER CTA & FOOTER --- */}
-      <div className="relative pt-32 pb-10 border-t border-white/5 bg-[#020402] px-6 overflow-hidden">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-green-900/10 blur-[120px] rounded-full pointer-events-none"></div>
-
-        <div className="relative z-10 max-w-5xl mx-auto text-center mb-24">
+      {/* ════════════════════════════════════════
+          FINAL CTA
+      ════════════════════════════════════════ */}
+      <section className="relative z-10 py-32 px-6 text-center">
+        <div className="max-w-4xl mx-auto">
           <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }} whileInView={{ opacity: 1, scale: 1, y: 0 }}
-            transition={{ duration: 1, ease: smoothCurve }} viewport={{ once: true }}
+            initial={{ opacity: 0, scale: 0.95, y: 30 }}
+            whileInView={{ opacity: 1, scale: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 1, ease }}
           >
-            <h2 className="text-4xl md:text-6xl lg:text-7xl font-black mb-8 tracking-tight text-white drop-shadow-xl">
-              Cultivate Trust,<br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-teal-300 drop-shadow-sm">Seamlessly.</span>
+            <Tag>Start Now</Tag>
+            <h2 className="text-5xl md:text-7xl font-black mt-6 mb-6 tracking-tight leading-[1.01]">
+              Cultivate Trust.
+              <br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-sage-600 via-sage-500 to-sage-300">
+                Scale Globally.
+              </span>
             </h2>
-            <div className="flex justify-center mt-6">
-              <Link to="/portal" className="inline-flex items-center justify-center gap-3 px-10 py-4 bg-white text-black rounded-full font-bold text-base hover:scale-105 transition-all duration-500 shadow-[0_0_30px_rgba(255,255,255,0.1)] hover:shadow-[0_0_50px_rgba(255,255,255,0.25)]">
-                Start Your Journey <ArrowRight size={18} />
+            <p className="text-gray-400 max-w-lg mx-auto mb-10 text-lg">
+              Join 124+ certified agencies and thousands of exporters who have moved beyond paper.
+            </p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+              <Link to="/portal">
+                <motion.button
+                  whileHover={{ scale: 1.05, boxShadow: '0 0 50px rgba(162,203,139,0.4)' }}
+                  whileTap={{ scale: 0.97 }}
+                  className="px-10 py-4 bg-sage-600 text-white rounded-2xl font-black text-base shadow-[0_0_30px_rgba(132,177,121,0.3)] hover:bg-sage-500 transition-all duration-300 flex items-center gap-3"
+                >
+                  Start Free <ArrowRight size={18} />
+                </motion.button>
               </Link>
+              <a href="mailto:support@agricert.tech">
+                <motion.button
+                  whileHover={{ scale: 1.04 }}
+                  className="px-10 py-4 border border-sage-600/25 text-sage-400 rounded-2xl font-bold text-base hover:bg-sage-600/10 transition-all duration-300"
+                >
+                  Contact Sales
+                </motion.button>
+              </a>
             </div>
           </motion.div>
         </div>
+      </section>
 
-        {/* Clean Modern Footer */}
-        <div className="relative z-10 max-w-7xl mx-auto border-t border-white/[0.05] pt-8 flex flex-col md:flex-row justify-between items-center gap-6">
-          <div className="flex items-center gap-2 opacity-90 hover:opacity-100 transition-opacity">
-            <img src="/veridant-logo.png" alt="AgriCert" className="w-6 h-6 object-contain" />
-            <span className="text-base font-black tracking-tight text-white italic">Agri<span className="text-emerald-400">Cert</span></span>
+      {/* ════════════════════════════════════════
+          FOOTER
+      ════════════════════════════════════════ */}
+      <footer className="relative z-10 border-t border-white/[0.05] bg-[#050a04]/80 px-6 py-12">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-8">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 flex items-center justify-center rounded-lg bg-sage-600/15 border border-sage-600/25">
+              <Leaf size={15} className="text-sage-500" />
+            </div>
+            <span className="font-black tracking-tight">Agri<span className="text-sage-500">Cert</span></span>
           </div>
 
-          <div className="flex flex-wrap justify-center gap-x-8 gap-y-2 text-sm text-gray-500 font-medium">
-            <a href="#" className="hover:text-green-400 transition-colors duration-300">Platform</a>
-            <a href="#" className="hover:text-green-400 transition-colors duration-300">Whitepaper</a>
-            <a href="#" className="hover:text-green-400 transition-colors duration-300">Privacy</a>
-            <a href="#" className="hover:text-green-400 transition-colors duration-300">GitHub</a>
+          <div className="flex flex-wrap justify-center gap-x-8 gap-y-2 text-sm text-gray-500">
+            {['Platform', 'Whitepaper', 'Privacy', 'GitHub', 'Status', 'Support'].map((link) => (
+              <a key={link} href="#" className="hover:text-sage-400 transition-colors duration-300">{link}</a>
+            ))}
           </div>
 
-          <div className="text-[10px] text-gray-600 font-mono tracking-widest uppercase">
-            © {new Date().getFullYear()} AGRICERT SECURED.
+          <div className="flex flex-col items-end gap-1">
+            <span className="text-[10px] text-gray-600 font-mono uppercase tracking-widest">
+              © {new Date().getFullYear()} AgriCert · All rights reserved.
+            </span>
+            <span className="text-[10px] text-gray-700 font-mono">Built with ❤️ for global food security.</span>
           </div>
         </div>
-      </div>
+      </footer>
 
     </div>
   );
 };
-
-// Polished Chapter Component
-const Chapter = ({ num, title, desc, icon: Icon, align }) => {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 60 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-100px" }}
-      transition={{ duration: 1.2, ease: smoothCurve }}
-      className={`flex flex-col md:flex-row gap-10 lg:gap-20 items-center ${align === 'right' ? 'md:flex-row-reverse' : ''}`}
-    >
-      {/* Graphic Side */}
-      <div className="flex-1 w-full relative group perspective-1000">
-        {/* The Outer Ambient Glow (Only visible on hover) */}
-        <div className="absolute -inset-2 bg-gradient-to-r from-green-500/0 to-teal-500/0 blur-[60px] rounded-full group-hover:from-green-500/20 group-hover:to-teal-500/20 transition-all duration-1000"></div>
-
-        {/* The Card */}
-        <motion.div
-          whileHover={{ y: -8, scale: 1.02 }}
-          transition={{ duration: 0.6, ease: "easeOut" }}
-          className="relative rounded-[32px] aspect-[4/3] bg-[#060D08] border border-white/[0.05] flex items-center justify-center overflow-hidden shadow-[0_10px_40px_rgba(0,0,0,0.5)] z-10"
-        >
-          {/* Extremely Subtle Internal Grid */}
-          <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.01)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.01)_1px,transparent_1px)] bg-[size:2rem_2rem] opacity-30 group-hover:opacity-50 transition-opacity duration-700"></div>
-
-          {/* Base Radial Gradient */}
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(34,197,94,0.05),transparent_70%)] opacity-50"></div>
-
-          {/* Hover Responsive Glow */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-40 bg-green-500/10 rounded-full blur-[40px] group-hover:bg-green-400/20 group-hover:scale-150 transition-all duration-700"></div>
-
-          <Icon size={100} className="text-white/10 group-hover:text-green-400 drop-shadow-none group-hover:drop-shadow-[0_0_30px_rgba(34,197,94,0.4)] transition-all duration-700 relative z-20" strokeWidth={1} />
-        </motion.div>
-      </div>
-
-      {/* Text Side */}
-      <div className={`flex-1 w-full space-y-5 ${align === 'right' ? 'md:text-right' : 'md:text-left'} z-20`}>
-        <span className="inline-block px-4 py-1.5 rounded-full border border-green-500/20 text-green-400 font-mono tracking-widest text-[10px] font-semibold bg-green-500/5 shadow-sm">
-          STAGE {num}
-        </span>
-        <h2 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight text-white leading-tight drop-shadow-sm">
-          {title}
-        </h2>
-        <p className="text-gray-400 text-sm md:text-base leading-relaxed max-w-lg mx-auto md:mx-0">
-          {desc}
-        </p>
-      </div>
-    </motion.div>
-  );
-}
 
 export default Landing;
