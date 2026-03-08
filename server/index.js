@@ -45,11 +45,10 @@ app.use(helmet({
 }));
 
 const allowedOrigins = [
-  'https://agricert-khaki.vercel.app',
-  process.env.FRONTEND_URL,
-  'http://localhost:5173',
-  'http://localhost:3000',
-].filter(Boolean); // Remove undefined if FRONTEND_URL is not set
+  "http://localhost:3000",
+  "https://agricert-khaki.vercel.app",
+  process.env.FRONTEND_URL
+].filter(Boolean); // Remove null/undefined if FRONTEND_URL is not set
 
 app.use(cors({
   origin: (origin, callback) => {
