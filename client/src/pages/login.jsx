@@ -1,31 +1,28 @@
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
-// 👇 ADDED 'Loader2' TO THIS LIST
-import { Tractor, Microscope, Ship, ArrowLeft, User, Mail, Lock, Facebook, Chrome, Loader2, Wheat, Search, Package, UserSearch } from 'lucide-react';
+import {
+  ShieldCheck, ArrowLeft, Mail, Lock, User,
+  Wheat, Search, Package, UserSearch,
+  Loader2, Zap, Globe, Github
+} from 'lucide-react';
+
+// Shared smooth curve
+const smoothCurve = [0.16, 1, 0.3, 1];
 
 const Login = ({ setUser }) => {
-  const [isLogin, setIsLogin] = useState(false); // Default to Sign Up
+  const [isLogin, setIsLogin] = useState(true);
   const [formData, setFormData] = useState({ name: '', email: '', password: '', confirmPassword: '' });
   const [loading, setLoading] = useState(false);
   const [selectedRole, setSelectedRole] = useState('farmer');
   const navigate = useNavigate();
 
-  // --- COLORS BASED ON ROLE ---
-  const theme = {
-    farmer: { bg: "from-[#4ade80] to-[#059669]", shadow: "shadow-green-500/40", shape: "bg-green-400", desc: "Register to certify and sell agricultural products." },
-    certifier: { bg: "from-[#60a5fa] to-[#2563eb]", shadow: "shadow-blue-500/40", shape: "bg-blue-400", desc: "Register to inspect and approve crop certifications." },
-    distributor: { bg: "from-[#c084fc] to-[#7c3aed]", shadow: "shadow-purple-500/40", shape: "bg-purple-400", desc: "Register to participate in crop auctions." },
-    consumer: { bg: "from-[#f472b6] to-[#db2777]", shadow: "shadow-pink-500/40", shape: "bg-pink-400", desc: "Register to verify product authenticity." }
-  }[selectedRole];
-
   const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-
+    if (e) e.preventDefault();
     if (!isLogin && formData.password !== formData.confirmPassword) {
       return toast.error("Passwords do not match!");
     }
@@ -51,237 +48,248 @@ const Login = ({ setUser }) => {
       localStorage.setItem('user', JSON.stringify(user));
       setUser(user);
     } catch (err) {
-      console.error(err);
-      // Handle the 500 error gracefully
-      toast.error(err.response?.data?.msg || 'Server Error. Please restart backend.');
+      toast.error(err.response?.data?.msg || 'Authentication failed. Check backend.');
     } finally {
       setLoading(false);
     }
   };
 
-  // --- DEMO ACCOUNTS QUICK LOGIN ---
   const loginDemoAccount = async (roleType) => {
     setLoading(true);
-
     const demoMapping = {
       farmer: { email: "farmer@demo.com" },
       certifier: { email: "certifier@demo.com" },
       distributor: { email: "distributor@demo.com" },
       consumer: { email: "consumer@demo.com" },
     };
-
-    const targetDemo = demoMapping[roleType];
-
     try {
       const res = await axios.post(`http://localhost:5000/api/auth/login`, {
-        email: targetDemo.email,
+        email: demoMapping[roleType].email,
         password: "password123"
       });
-
       const user = res.data.user;
       toast.success(`Demo Access: Welcome ${user.name}!`);
       localStorage.setItem('token', res.data.token);
       localStorage.setItem('user', JSON.stringify(user));
       setUser(user);
     } catch (err) {
-      console.error(err);
-      toast.error('Demo Login Failed. Did you run the seed script?');
+      toast.error('Demo login failed.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className={`relative min-h-screen w-full flex items-center justify-center overflow-hidden bg-gradient-to-br ${theme.bg} transition-colors duration-1000`}>
+    <div className="min-h-screen w-full bg-[#020502] flex items-center justify-center p-4 sm:p-6 overflow-hidden relative">
 
-      {/* --- FLOATING 3D SHAPES --- */}
-      <motion.div
-        animate={{ rotate: 360, y: [0, -20, 0] }}
-        transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
-        className="absolute top-[10%] right-[10%] w-24 h-24 md:w-32 md:h-32 bg-white/20 backdrop-blur-xl border border-white/40 rounded-3xl shadow-2xl z-0 transform rotate-12"
-      />
-      <motion.div
-        animate={{ rotate: -360, y: [0, 30, 0] }}
-        transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
-        className="absolute bottom-[10%] left-[5%] w-32 h-32 md:w-40 md:h-40 rounded-full border-[15px] border-white/10 backdrop-blur-md z-20"
-      />
-      <motion.div
-        animate={{ x: [0, 20, 0] }}
-        transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
-        className={`absolute top-[40%] left-[15%] w-16 h-16 rounded-full ${theme.shape} blur-xl opacity-60`}
-      />
+      {/* BACKGROUND ELEMENTS */}
+      <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(34,197,94,0.05),transparent_70%)]"></div>
+        <motion.div
+          animate={{ rotate: 360 }} transition={{ duration: 50, repeat: Infinity, ease: 'linear' }}
+          className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] border border-green-500/10 rounded-full border-dashed opacity-40"
+        ></motion.div>
+        <motion.div
+          animate={{ rotate: -360 }} transition={{ duration: 40, repeat: Infinity, ease: 'linear' }}
+          className="absolute bottom-[-10%] left-[-10%] w-[400px] h-[400px] border border-green-500/10 rounded-full border-dashed opacity-40"
+        ></motion.div>
+      </div>
 
       {/* BACK BUTTON */}
-      <Link to="/" className="absolute top-8 left-8 z-50">
-        <button className="flex items-center gap-2 text-white font-bold bg-white/10 px-4 py-2 rounded-full hover:bg-white/20 backdrop-blur-md transition-all">
-          <ArrowLeft size={18} /> Back
-        </button>
+      <Link to="/" className="absolute top-8 left-8 z-[100]">
+        <motion.button
+          whileHover={{ scale: 1.05, x: -5 }}
+          className="flex items-center gap-2 text-white/70 hover:text-green-400 font-mono text-xs uppercase tracking-widest bg-white/5 px-5 py-2.5 rounded-full border border-white/10 backdrop-blur-xl transition-all"
+        >
+          <ArrowLeft size={14} /> Back to Hub
+        </motion.button>
       </Link>
 
-      {/* --- MAIN GLASS CARD --- */}
-      <motion.div
-        initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
-        className="relative z-10 w-full max-w-4xl bg-white/10 backdrop-blur-2xl border border-white/20 rounded-[40px] shadow-2xl overflow-hidden flex flex-col md:flex-row m-4"
-      >
+      {/* MAIN CONTAINER */}
+      <div className="relative z-10 w-full max-w-[1000px] min-h-[650px] bg-[#050A06]/80 backdrop-blur-3xl border border-white/5 rounded-[40px] shadow-[0_20px_80px_rgba(0,0,0,0.8)] flex overflow-hidden group">
 
-        {/* LEFT SIDE: INPUTS */}
-        <div className="w-full md:w-1/2 p-8 md:p-12 flex flex-col justify-center">
-          <div>
-            <h1 className="text-4xl font-bold text-white mb-1">
-              {isLogin ? 'Welcome Back' : 'Sign Up'}
-            </h1>
-            <p className="text-white/80 font-medium text-sm mb-4">Blockchain-powered agricultural certification and trading platform.</p>
+        {/* SLIDING OVERLAY PANEL */}
+        <motion.div
+          initial={false}
+          animate={{ x: isLogin ? '100%' : '0%' }}
+          transition={{ duration: 1, ease: smoothCurve }}
+          className="absolute top-0 left-0 w-1/2 h-full z-50 pointer-events-auto hidden lg:flex"
+        >
+          <div className="w-full h-full bg-gradient-to-br from-green-600 via-emerald-700 to-green-900 p-12 flex flex-col justify-between relative overflow-hidden">
+            {/* Abstract internal graphics */}
+            <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.05)_1px,transparent_1px)] bg-[size:2rem_2rem] opacity-20"></div>
+
+            <div className="relative z-10">
+              <div className="flex items-center gap-3 mb-8">
+                <div className="w-10 h-10 bg-black/20 backdrop-blur-xl border border-white/20 rounded-xl flex items-center justify-center">
+                  <ShieldCheck className="text-white" size={24} />
+                </div>
+                <span className="text-xl font-black text-white tracking-tight">AgriCert</span>
+              </div>
+              <h1 className="text-5xl font-black text-white leading-[1.1] mb-6 tracking-tighter">
+                {isLogin ? "Hello,\nFarmer." : "Join the\nNetwork."}
+              </h1>
+              <p className="text-white/80 font-medium leading-relaxed max-w-xs">
+                {isLogin
+                  ? "Enter your credentials to access the world's most trusted agricultural ledger."
+                  : "Start certifying your journey with AI-powered quality verification and instant global auctions."
+                }
+              </p>
+            </div>
+
+            <div className="relative z-10">
+              <button
+                onClick={() => setIsLogin(!isLogin)}
+                className="px-10 py-4 bg-black text-white rounded-full font-bold text-sm tracking-widest hover:scale-105 transition-all shadow-2xl border border-white/10"
+              >
+                {isLogin ? "CREATE ACCOUNT" : "SIGN IN INSTEAD"}
+              </button>
+            </div>
           </div>
-          <p className="text-white/60 mb-8 text-sm italic">
-            {isLogin ? 'Enter your details to access the decentralized network.' : theme.desc}
-          </p>
+        </motion.div>
 
-          {/* Role Selector */}
-          <div className="flex gap-2 mb-6 bg-black/10 p-1 rounded-xl">
+        {/* LEFT COMPONENT (Sign Up Logic) */}
+        <div className={`w-full lg:w-1/2 p-8 md:p-12 border-r border-white/5 flex flex-col justify-center transition-opacity duration-700 ${isLogin ? 'lg:opacity-100' : 'lg:opacity-0 pointer-events-none'}`}>
+          <div className="mb-8">
+            <h2 className="text-3xl font-black text-white tracking-tight mb-2">Sign In</h2>
+            <p className="text-gray-500 text-sm font-medium">Decentralized Supply Chain Protocol</p>
+          </div>
+
+          {/* Role Toggle */}
+          <div className="grid grid-cols-4 gap-2 mb-8 bg-white/5 p-1.5 rounded-2xl border border-white/5">
             {['farmer', 'certifier', 'distributor', 'consumer'].map((role) => {
-              // Icon mapping for roles
               const RoleIcon = { farmer: Wheat, certifier: Search, distributor: Package, consumer: UserSearch }[role];
-
               return (
                 <button
                   key={role}
                   onClick={() => setSelectedRole(role)}
-                  className={`flex-1 py-2 flex flex-col items-center justify-center gap-1 text-[10px] md:text-[11px] font-bold uppercase rounded-lg transition-all ${selectedRole === role ? 'bg-white text-black shadow-md p-1' : 'text-white/60 hover:text-white p-1'
-                    }`}
+                  className={`py-3 rounded-xl flex flex-col items-center justify-center gap-1 transition-all ${selectedRole === role ? 'bg-green-500 text-black shadow-[0_0_20px_rgba(34,197,94,0.3)]' : 'text-gray-500 hover:text-white'}`}
                 >
                   <RoleIcon size={16} />
-                  <span>{role}</span>
+                  <span className="text-[9px] font-bold uppercase tracking-widest">{role}</span>
                 </button>
               );
             })}
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-
-            <div className="bg-white/20 rounded-2xl p-1 flex items-center border border-white/10 focus-within:bg-white/30 transition-colors">
-              <div className="p-3 text-white/60">{isLogin ? <Mail size={20} /> : <User size={20} />}</div>
+            <div className="relative group">
+              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-green-400 transition-colors" size={18} />
               <input
-                type={isLogin ? "email" : "text"}
-                name={isLogin ? "email" : "name"}
-                value={isLogin ? formData.email : formData.name}
-                onChange={handleChange}
-                required
-                placeholder={isLogin ? "Email Address" : "Full Name"}
-                className="bg-transparent w-full outline-none text-white placeholder-white/50 font-medium h-10"
+                type="email" name="email" value={formData.email} onChange={handleChange} required
+                placeholder="Email Address"
+                className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-white placeholder-gray-600 outline-none focus:border-green-500/50 focus:bg-white/10 transition-all font-medium"
               />
             </div>
-
-            <AnimatePresence>
-              {!isLogin && (
-                <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}>
-                  <div className="bg-white/20 rounded-2xl p-1 flex items-center border border-white/10 mb-4 focus-within:bg-white/30 transition-colors">
-                    <div className="p-3 text-white/60"><Mail size={20} /></div>
-                    <input
-                      type="email" name="email" value={formData.email} onChange={handleChange} required
-                      placeholder="Email Address"
-                      className="bg-transparent w-full outline-none text-white placeholder-white/50 font-medium h-10"
-                    />
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            <div className="bg-white/20 rounded-2xl p-1 flex items-center border border-white/10 focus-within:bg-white/30 transition-colors">
-              <div className="p-3 text-white/60"><Lock size={20} /></div>
+            <div className="relative group">
+              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-green-400 transition-colors" size={18} />
               <input
                 type="password" name="password" value={formData.password} onChange={handleChange} required
-                placeholder="Password"
-                className="bg-transparent w-full outline-none text-white placeholder-white/50 font-medium h-10"
+                placeholder="Enter Password"
+                className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-white placeholder-gray-600 outline-none focus:border-green-500/50 focus:bg-white/10 transition-all font-medium"
               />
             </div>
 
-            <AnimatePresence>
-              {!isLogin && (
-                <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}>
-                  <div className="bg-white/20 rounded-2xl p-1 flex items-center border border-white/10 mt-4 focus-within:bg-white/30 transition-colors">
-                    <div className="p-3 text-white/60"><Lock size={20} /></div>
-                    <input
-                      type="password" name="confirmPassword" value={formData.confirmPassword} onChange={handleChange} required
-                      placeholder="Confirm Password"
-                      className="bg-transparent w-full outline-none text-white placeholder-white/50 font-medium h-10"
-                    />
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-          </form>
-        </div>
-
-        {/* RIGHT SIDE: ACTIONS */}
-        <div className="w-full md:w-1/2 bg-white/5 backdrop-blur-sm p-8 md:p-12 flex flex-col justify-center border-l border-white/10 relative overflow-hidden">
-
-          {/* BIG BACKGROUND ICON (Visual Only) */}
-          <div className="absolute -right-10 -bottom-10 opacity-10 text-white pointer-events-none">
-            {selectedRole === 'farmer' && <Wheat size={300} />}
-            {selectedRole === 'certifier' && <Search size={300} />}
-            {selectedRole === 'distributor' && <Package size={300} />}
-            {selectedRole === 'consumer' && <UserSearch size={300} />}
-          </div>
-
-          <h2 className="text-2xl font-bold text-white mb-6">{isLogin ? 'Welcome Back' : 'Join the Future'}</h2>
-
-          <button
-            onClick={handleSubmit}
-            disabled={loading}
-            className="w-full py-4 bg-black text-white rounded-2xl font-bold text-lg hover:scale-105 transition-transform shadow-xl mb-6 flex items-center justify-center gap-2"
-          >
-            {loading ? <Loader2 className="animate-spin" /> : (isLogin ? 'Log In' : 'Sign Up')}
-          </button>
-
-          <div className="mt-6 p-6 bg-white/5 rounded-2xl border border-white/10 text-center">
-            <h3 className="text-white font-bold mb-2">{isLogin ? 'New to AgriCert?' : 'Already have an account?'}</h3>
             <button
-              onClick={() => setIsLogin(!isLogin)}
-              className="text-white/90 font-semibold underline underline-offset-4 hover:text-white transition-colors text-sm"
+              type="submit" disabled={loading}
+              className="w-full py-4 bg-green-500 text-black rounded-2xl font-black text-sm tracking-widest shadow-[0_10px_30px_rgba(34,197,94,0.2)] hover:scale-[1.02] transition-all active:scale-[0.98] mt-4 flex items-center justify-center gap-2"
             >
-              {isLogin ? 'Create an account →' : 'Log in instead →'}
+              {loading ? <Loader2 className="animate-spin" size={20} /> : "AUTHENTICATE"}
             </button>
+          </form>
+
+          <div className="mt-8 flex items-center gap-4 py-4 lg:hidden">
+            <div className="flex-1 h-[1px] bg-white/5"></div>
+            <span className="text-gray-600 text-[10px] font-bold uppercase tracking-widest">New here?</span>
+            <div className="flex-1 h-[1px] bg-white/5"></div>
           </div>
 
-          {/* QUICK DEMO ACCESS SECTION */}
-          <div className="mt-8 border-t border-white/10 pt-6">
-            <h3 className="text-white/60 text-xs font-bold uppercase tracking-wider mb-4 text-center">Quick Demo Access</h3>
+          <button onClick={() => setIsLogin(false)} className="lg:hidden w-full py-4 rounded-2xl border border-white/10 text-white font-bold text-sm">CREATE ACCOUNT</button>
+
+          {/* Demo Access */}
+          <div className="mt-auto pt-8 border-t border-white/5">
+            <p className="text-[10px] font-black text-gray-600 uppercase tracking-[0.2em] mb-4 text-center">Quick Demo Access</p>
             <div className="grid grid-cols-2 gap-3">
-              <button
-                onClick={() => loginDemoAccount('farmer')}
-                className="py-3 px-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-white/90 text-sm font-semibold transition-colors flex items-center justify-center gap-2"
-              >
-                <Wheat size={16} className="text-green-400" /> Login as Farmer
+              <button onClick={() => loginDemoAccount('farmer')} className="flex items-center justify-center gap-2 py-3 bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl transition-all text-white/50 hover:text-white text-xs font-bold">
+                <Wheat size={14} className="text-green-500" /> Farmer
               </button>
-              <button
-                onClick={() => loginDemoAccount('certifier')}
-                className="py-3 px-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-white/90 text-sm font-semibold transition-colors flex items-center justify-center gap-2"
-              >
-                <Search size={16} className="text-blue-400" /> Login as Certifier
+              <button onClick={() => loginDemoAccount('certifier')} className="flex items-center justify-center gap-2 py-3 bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl transition-all text-white/50 hover:text-white text-xs font-bold">
+                <Search size={14} className="text-blue-500" /> Certifier
               </button>
-              <button
-                onClick={() => loginDemoAccount('distributor')}
-                className="py-3 px-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-white/90 text-sm font-semibold transition-colors flex items-center justify-center gap-2"
-              >
-                <Package size={16} className="text-purple-400" /> Login as Distributor
+              <button onClick={() => loginDemoAccount('distributor')} className="flex items-center justify-center gap-2 py-3 bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl transition-all text-white/50 hover:text-white text-xs font-bold">
+                <Package size={14} className="text-purple-500" /> Distributor
               </button>
-              <button
-                onClick={() => loginDemoAccount('consumer')}
-                className="py-3 px-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-white/90 text-sm font-semibold transition-colors flex items-center justify-center gap-2"
-              >
-                <UserSearch size={16} className="text-pink-400" /> Login as Consumer
+              <button onClick={() => loginDemoAccount('consumer')} className="flex items-center justify-center gap-2 py-3 bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl transition-all text-white/50 hover:text-white text-xs font-bold">
+                <UserSearch size={14} className="text-pink-500" /> Consumer
               </button>
             </div>
-
-            <p className="mt-6 text-center text-white/40 text-[11px]">
-              For hackathon judges: Click any role above to instantly bypass the signup flow and view the corresponding dashboard.
-            </p>
           </div>
-
         </div>
 
-      </motion.div>
+        {/* RIGHT COMPONENT (Sign Up Logic) */}
+        <div className={`w-full lg:w-1/2 p-8 md:p-12 flex flex-col justify-center transition-opacity duration-700 ${!isLogin ? 'lg:opacity-100' : 'lg:opacity-0 pointer-events-none'}`}>
+          <div className="mb-8">
+            <h2 className="text-3xl font-black text-white tracking-tight mb-2">Create Account</h2>
+            <p className="text-gray-500 text-sm font-medium">Join the Decentralized Agriculture Ecosystem</p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="relative group">
+              <User className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-green-400 transition-colors" size={18} />
+              <input
+                type="text" name="name" value={formData.name} onChange={handleChange} required
+                placeholder="Your Full Name"
+                className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-white placeholder-gray-600 outline-none focus:border-green-500/50 focus:bg-white/10 transition-all font-medium"
+              />
+            </div>
+            <div className="relative group">
+              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-green-400 transition-colors" size={18} />
+              <input
+                type="email" name="email" value={formData.email} onChange={handleChange} required
+                placeholder="Email Address"
+                className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-white placeholder-gray-600 outline-none focus:border-green-500/50 focus:bg-white/10 transition-all font-medium"
+              />
+            </div>
+            <div className="relative group">
+              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-green-400 transition-colors" size={18} />
+              <input
+                type="password" name="password" value={formData.password} onChange={handleChange} required
+                placeholder="Secure Password"
+                className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-white placeholder-gray-600 outline-none focus:border-green-500/50 focus:bg-white/10 transition-all font-medium"
+              />
+            </div>
+            <div className="relative group">
+              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-green-400 transition-colors" size={18} />
+              <input
+                type="password" name="confirmPassword" value={formData.confirmPassword} onChange={handleChange} required
+                placeholder="Confirm Password"
+                className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-white placeholder-gray-600 outline-none focus:border-green-500/50 focus:bg-white/10 transition-all font-medium"
+              />
+            </div>
+
+            <button
+              type="submit" disabled={loading}
+              className="w-full py-4 bg-green-500 text-black rounded-2xl font-black text-sm tracking-widest shadow-[0_10px_30px_rgba(34,197,94,0.2)] hover:scale-[1.02] transition-all active:scale-[0.98] mt-4 flex items-center justify-center gap-2"
+            >
+              {loading ? <Loader2 className="animate-spin" size={20} /> : "PROCEED TO REGISTER"}
+            </button>
+          </form>
+
+          <button onClick={() => setIsLogin(true)} className="lg:hidden w-full py-4 mt-4 rounded-2xl border border-white/10 text-white font-bold text-sm">SIGN IN INSTEAD</button>
+
+          <div className="mt-auto pt-8 border-t border-white/5">
+            <p className="text-[10px] font-black text-gray-600 uppercase tracking-[0.2em] mb-4 text-center">Protocol Security</p>
+            <div className="flex justify-center gap-6 opacity-40">
+              <Zap size={20} className="text-yellow-500" />
+              <ShieldCheck size={20} className="text-green-500" />
+              <Globe size={20} className="text-blue-400" />
+              <Github size={20} className="text-white" />
+            </div>
+          </div>
+        </div>
+
+      </div>
+
     </div>
   );
 };

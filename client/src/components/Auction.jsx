@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { io } from 'socket.io-client';
 import toast from 'react-hot-toast';
 import { useCrossTabSync } from '../hooks/useCrossTabSync';
-import { Gavel, TrendingUp, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Gavel, TrendingUp, AlertCircle, CheckCircle2, DollarSign } from 'lucide-react';
 
 // Connect to WebSocket server
 const SOCKET_URL = 'http://localhost:5000';
@@ -53,7 +53,10 @@ const Auction = ({ productId, currentUserId, currentUserRole }) => {
                 highestBidder: data.highestBidder,
                 error: null
             }));
-            toast(`New Bid: $${data.highestBid}`, { icon: '💰' });
+            toast(`New Bid: $${data.highestBid}`, {
+                icon: <DollarSign className="text-green-500" size={18} />,
+                className: 'bg-gray-900 text-white border border-white/10'
+            });
 
             // Sync sibling tabs immediately natively
             syncTabs({ type: 'NEW_BID', amount: data.highestBid });
