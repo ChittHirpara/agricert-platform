@@ -45,6 +45,7 @@ app.use(helmet({
 }));
 
 const allowedOrigins = [
+  'https://agricert-khaki.vercel.app',
   process.env.FRONTEND_URL,
   'http://localhost:5173',
   'http://localhost:3000',
@@ -59,6 +60,7 @@ app.use(cors({
       callback(new Error(`CORS policy: Origin ${origin} not allowed`));
     }
   },
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
   credentials: true,
 }));
 app.use(express.json());
