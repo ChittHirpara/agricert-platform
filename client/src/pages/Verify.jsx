@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import axios from 'axios';
 import { motion } from 'framer-motion';
 import {
   ShieldCheck, CheckCircle, XCircle, Loader2,
   Package, MapPin, Tractor, Microscope, Ship, Lock
 } from 'lucide-react';
 import BlockchainAudit from '../components/BlockchainAudit'; // Import the Matrix Component
+import api from '../utils/api'; // Use centralized API instance
 
 const Verify = () => {
   const { id } = useParams();
@@ -20,7 +20,8 @@ const Verify = () => {
   useEffect(() => {
     const fetchBatch = async () => {
       try {
-        const res = await axios.get(`https://agriqcert-1.onrender.com/api/batches/verify/${id}`);
+        // Uses VITE_API_URL env var (falls back to localhost:5000 for local dev)
+        const res = await api.get(`/api/batches/verify/${id}`);
         setBatch(res.data);
       } catch (err) {
         console.error(err);

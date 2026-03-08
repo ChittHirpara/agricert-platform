@@ -26,7 +26,30 @@ function App() {
 
   return (
     <BrowserRouter>
-      <Toaster position="top-right" toastOptions={{ duration: 3000 }} />
+      <Toaster
+        position="bottom-right"
+        toastOptions={{
+          duration: 3500,
+          style: {
+            background: '#080f07',
+            color: '#e5e7eb',
+            border: '1px solid rgba(132,177,121,0.2)',
+            borderRadius: '14px',
+            fontSize: '13px',
+            fontWeight: '600',
+            boxShadow: '0 20px 40px rgba(0,0,0,0.5)',
+            padding: '12px 16px',
+          },
+          success: {
+            iconTheme: { primary: '#84B179', secondary: '#080f07' },
+            style: { borderColor: 'rgba(132,177,121,0.3)' },
+          },
+          error: {
+            iconTheme: { primary: '#f87171', secondary: '#080f07' },
+            style: { borderColor: 'rgba(248,113,113,0.3)' },
+          },
+        }}
+      />
 
       <Routes>
         {/* 1. The Public Landing Page (First thing they see) */}
