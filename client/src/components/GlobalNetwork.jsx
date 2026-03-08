@@ -10,7 +10,7 @@ const GlobalNetwork = ({ batches, onClose }) => {
 
   useEffect(() => {
     // 1. Define Origin (India - Approx Center)
-    const origin = { lat: 20.5937, lng: 78.9629, name: "AgriQCert HQ (India)" };
+    const origin = { lat: 20.5937, lng: 78.9629, name: "AgriCert HQ (India)" };
 
     // 2. Generate Destination Data from Batches
     // In a real app, you'd use a geocoding API to turn "Dubai" into Lat/Lng.
@@ -45,26 +45,26 @@ const GlobalNetwork = ({ batches, onClose }) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-xl overflow-hidden">
-      
-      <motion.div 
+
+      <motion.div
         initial={{ opacity: 0, scale: 0.8 }}
         animate={{ opacity: 1, scale: 1 }}
         className="relative w-full h-full flex items-center justify-center"
       >
-        
+
         {/* HEADER OVERLAY */}
         <div className="absolute top-0 left-0 w-full p-6 flex justify-between items-start z-10 pointer-events-none">
           <div>
             <h1 className="text-3xl font-bold text-white flex items-center gap-3">
-              <GlobeIcon className="text-blue-500 animate-spin-slow" /> 
+              <GlobeIcon className="text-blue-500 animate-spin-slow" />
               Global Trade Neural Network
             </h1>
             <p className="text-blue-300/70 font-mono text-sm mt-2">
               Visualizing Active Blockchain Supply Chains
             </p>
           </div>
-          <button 
-            onClick={onClose} 
+          <button
+            onClick={onClose}
             className="pointer-events-auto bg-white/10 hover:bg-white/20 text-white p-3 rounded-full transition-all backdrop-blur-md border border-white/10"
           >
             <X size={24} />
@@ -76,7 +76,7 @@ const GlobalNetwork = ({ batches, onClose }) => {
           ref={globeEl}
           globeImageUrl="//unpkg.com/three-globe/example/img/earth-night.jpg"
           backgroundImageUrl="//unpkg.com/three-globe/example/img/night-sky.png"
-          
+
           // Arcs (The Trade Routes)
           arcsData={arcs}
           arcColor="color"
@@ -91,7 +91,7 @@ const GlobalNetwork = ({ batches, onClose }) => {
           pointAltitude={0.05}
           pointRadius={0.5}
           pointPulseBtn={true} // Pulse animation
-          
+
           // Atmosphere glow
           atmosphereColor="#3b82f6"
           atmosphereAltitude={0.15}
@@ -100,15 +100,15 @@ const GlobalNetwork = ({ batches, onClose }) => {
         {/* STATS OVERLAY */}
         <div className="absolute bottom-8 left-8 pointer-events-none space-y-4">
           <div className="bg-black/50 backdrop-blur-md p-4 rounded-xl border-l-4 border-green-500 max-w-sm">
-             <h3 className="text-green-400 text-xs font-bold uppercase tracking-widest mb-1">Active Routes</h3>
-             <div className="text-white text-2xl font-bold">5 Continents</div>
-             <p className="text-gray-400 text-xs mt-1">Real-time latency: 24ms</p>
+            <h3 className="text-green-400 text-xs font-bold uppercase tracking-widest mb-1">Active Routes</h3>
+            <div className="text-white text-2xl font-bold">5 Continents</div>
+            <p className="text-gray-400 text-xs mt-1">Real-time latency: 24ms</p>
           </div>
-          
+
           <div className="bg-black/50 backdrop-blur-md p-4 rounded-xl border-l-4 border-blue-500 max-w-sm">
-             <h3 className="text-blue-400 text-xs font-bold uppercase tracking-widest mb-1">Total Volume</h3>
-             <div className="text-white text-2xl font-bold">14,250 Tons</div>
-             <p className="text-gray-400 text-xs mt-1">Verified on Ledger</p>
+            <h3 className="text-blue-400 text-xs font-bold uppercase tracking-widest mb-1">Total Volume</h3>
+            <div className="text-white text-2xl font-bold">14,250 Tons</div>
+            <p className="text-gray-400 text-xs mt-1">Verified on Ledger</p>
           </div>
         </div>
 

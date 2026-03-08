@@ -20,7 +20,7 @@ const BlockchainAudit = ({ batch, onClose }) => {
 
     // Sequence of "Hacking" animations
     addLog("Initializing Secure Handshake...", 500);
-    addLog("Connecting to AgriQCert Consensus Node...", 1200);
+    addLog("Connecting to AgriCert Consensus Node...", 1200);
     addLog("Fetching Block Header 0x7F2A...", 2000);
     addLog("Extracting Raw Batch Data...", 2800);
 

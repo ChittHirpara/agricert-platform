@@ -31,16 +31,17 @@ router.post('/scan', protect, authorize('certifier'), upload.single('document'),
     try {
         if (!req.file) {
             // Optional fallback: process already uploaded batch file if path provided in body
-            const { existingFilePath } = req.body;
+            const { existingFilePath, isDemo } = req.body;
             if (existingFilePath) {
                 const fullPath = path.join(__dirname, '..', existingFilePath.replace(/^\//, ''));
-                const ocrData = await extractDataFromImage(fullPath);
+                const ocrData = await extractDataFromImage(fullPath, isDemo === true || isDemo === 'true');
                 return res.json({ ocrData, fileUrl: existingFilePath });
             }
             return res.status(400).json({ msg: 'Please upload an image or provide an existing file path' });
         }
 
-        const ocrData = await extractDataFromImage(req.file.path);
+        const { isDemo } = req.body;
+        const ocrData = await extractDataFromImage(req.file.path, isDemo === true || isDemo === 'true');
         res.json({ ocrData, fileUrl: `/uploads/${req.file.filename}` });
     } catch (err) {
         if (err.message === "Invalid certification document") {

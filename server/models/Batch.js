@@ -17,6 +17,7 @@ const BatchSchema = new mongoose.Schema({
     enum: ['pending', 'active', 'completed'],
     default: 'pending'
   },
+  isDemo: { type: Boolean, default: false },
   createdAt: { type: Date, default: Date.now }
 });
 

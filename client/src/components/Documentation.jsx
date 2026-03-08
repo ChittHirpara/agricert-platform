@@ -7,20 +7,20 @@ const Documentation = ({ onClose }) => {
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl overflow-hidden">
-      
-      <motion.div 
+
+      <motion.div
         initial={{ scale: 0.9, opacity: 0, y: 50 }}
         animate={{ scale: 1, opacity: 1, y: 0 }}
         exit={{ scale: 0.9, opacity: 0, y: 50 }}
         className="w-full max-w-6xl h-[85vh] bg-[#0f0f0f] border border-white/10 rounded-3xl shadow-2xl flex flex-col overflow-hidden relative"
       >
-        
+
         {/* GRID BACKGROUND */}
         <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none"></div>
 
         {/* HEADER & TABS */}
         <div className="p-6 border-b border-white/10 flex justify-between items-center bg-[#0f0f0f] z-10">
-          
+
           <div className="flex items-center gap-6">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-blue-500/20 rounded-lg border border-blue-500/50">
@@ -28,25 +28,23 @@ const Documentation = ({ onClose }) => {
               </div>
               <div>
                 <h2 className="text-xl font-bold text-white">Project Documentation</h2>
-                <p className="text-xs text-gray-500 font-mono uppercase tracking-widest">AgriQCert Protocol v2.0</p>
+                <p className="text-xs text-gray-500 font-mono uppercase tracking-widest">AgriCert Protocol v2.0</p>
               </div>
             </div>
 
             {/* TAB SWITCHER */}
             <div className="hidden md:flex bg-white/5 p-1 rounded-lg border border-white/5">
-              <button 
+              <button
                 onClick={() => setActiveTab('blueprint')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-bold transition-all ${
-                  activeTab === 'blueprint' ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-400 hover:text-white'
-                }`}
+                className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-bold transition-all ${activeTab === 'blueprint' ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-400 hover:text-white'
+                  }`}
               >
                 <FileText size={16} /> System Blueprint
               </button>
-              <button 
+              <button
                 onClick={() => setActiveTab('video')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-bold transition-all ${
-                  activeTab === 'video' ? 'bg-green-600 text-white shadow-lg' : 'text-gray-400 hover:text-white'
-                }`}
+                className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-bold transition-all ${activeTab === 'video' ? 'bg-green-600 text-white shadow-lg' : 'text-gray-400 hover:text-white'
+                  }`}
               >
                 <Video size={16} /> Watch Demo
               </button>
@@ -60,7 +58,7 @@ const Documentation = ({ onClose }) => {
 
         {/* CONTENT AREA */}
         <div className="flex-1 overflow-y-auto p-8 custom-scrollbar z-10">
-          
+
           {/* === TAB 1: BLUEPRINT === */}
           {activeTab === 'blueprint' && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-16">
@@ -89,10 +87,10 @@ const Documentation = ({ onClose }) => {
           {activeTab === 'video' && (
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col items-center justify-center h-full">
               <div className="w-full max-w-4xl bg-black border border-white/10 rounded-2xl overflow-hidden shadow-2xl relative group">
-                
+
                 {/* Video Player */}
-                <video 
-                  controls 
+                <video
+                  controls
                   className="w-full aspect-video object-cover"
                   poster="https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=2070&auto=format&fit=crop" // Placeholder thumbnail
                 >
@@ -108,9 +106,9 @@ const Documentation = ({ onClose }) => {
                 </div>
 
               </div>
-              
+
               <div className="mt-8 text-center max-w-2xl">
-                <h3 className="text-xl font-bold text-white mb-2">Walkthrough of AgriQCert</h3>
+                <h3 className="text-xl font-bold text-white mb-2">Walkthrough of AgriCert</h3>
                 <p className="text-gray-400">
                   Watch the full workflow: from Exporter submission, to AI-powered Quality Inspection, to Blockchain Verification.
                 </p>

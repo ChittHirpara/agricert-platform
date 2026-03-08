@@ -67,4 +67,12 @@ router.get('/ml-check', (req, res) => {
 
 });
 
+// @route   GET /api/system/demo-certificate
+// @desc    Get a demo certificate for OCR testing
+router.get('/demo-certificate', (req, res) => {
+    res.json({
+        file: "/demo-assets/demo-certificate-1.png"
+    });
+});
+
 module.exports = router;

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../utils/api';
 import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -34,7 +34,7 @@ const Login = ({ setUser }) => {
       : { name: formData.name, email: formData.email, password: formData.password, role: selectedRole };
 
     try {
-      const res = await axios.post(`http://localhost:5000${endpoint}`, payload);
+      const res = await api.post(endpoint, payload);
       const user = res.data.user;
 
       if (isLogin && user.role !== selectedRole) {
@@ -63,7 +63,7 @@ const Login = ({ setUser }) => {
       consumer: { email: "consumer@demo.com" },
     };
     try {
-      const res = await axios.post(`http://localhost:5000/api/auth/login`, {
+      const res = await api.post(`/api/auth/login`, {
         email: demoMapping[roleType].email,
         password: "password123"
       });
@@ -122,9 +122,9 @@ const Login = ({ setUser }) => {
             <div className="relative z-10">
               <div className="flex items-center gap-3 mb-8">
                 <div className="w-10 h-10 bg-black/20 backdrop-blur-xl border border-white/20 rounded-xl flex items-center justify-center">
-                  <ShieldCheck className="text-white" size={24} />
+                  <img src="/veridant-logo.png" alt="AgriCert" className="w-6 h-6 object-contain" />
                 </div>
-                <span className="text-xl font-black text-white tracking-tight">AgriCert</span>
+                <span className="text-xl font-black text-white tracking-tight italic">Agri<span className="text-emerald-400">Cert</span></span>
               </div>
               <h1 className="text-5xl font-black text-white leading-[1.1] mb-6 tracking-tighter">
                 {isLogin ? "Hello,\nFarmer." : "Join the\nNetwork."}

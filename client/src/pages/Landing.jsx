@@ -102,12 +102,10 @@ const Landing = () => {
         <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
           <Link to="/" className="flex items-center gap-3 cursor-pointer group">
             <div className="relative">
-              <div className="absolute inset-0 bg-green-500 blur-lg opacity-30 group-hover:opacity-60 transition-opacity duration-700"></div>
-              <div className="relative w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-700 rounded-xl flex items-center justify-center text-white shadow-xl">
-                <ShieldCheck size={22} className="group-hover:scale-110 transition-transform duration-500" />
-              </div>
+              <div className="absolute inset-0 bg-emerald-500 blur-lg opacity-30 group-hover:opacity-60 transition-opacity duration-700"></div>
+              <img src="/veridant-logo.png" alt="AgriCert Logo" className="relative w-10 h-10 object-contain rounded-xl shadow-xl group-hover:scale-110 transition-transform duration-500" />
             </div>
-            <span className="text-xl font-black tracking-tight text-white">Agri<span className="text-green-400">Cert</span></span>
+            <span className="text-xl font-black tracking-tight text-white italic">Agri<span className="text-emerald-400">Cert</span></span>
           </Link>
 
           <div className="flex gap-6 items-center">
@@ -142,7 +140,7 @@ const Landing = () => {
 
             <div className="text-5xl sm:text-6xl md:text-7xl lg:text-[4.5rem] xl:text-[5rem] font-extrabold tracking-tight leading-[1.05]">
               <TextReveal text="Trust in Agriculture," delay={0.2} />
-              <TextReveal text="Verified by AI" delay={0.4} />
+              <TextReveal text="Powered by AI" delay={0.4} />
               <TextReveal text="& Blockchain." delay={0.6} />
             </div>
 
@@ -345,8 +343,8 @@ const Landing = () => {
         {/* Clean Modern Footer */}
         <div className="relative z-10 max-w-7xl mx-auto border-t border-white/[0.05] pt-8 flex flex-col md:flex-row justify-between items-center gap-6">
           <div className="flex items-center gap-2 opacity-90 hover:opacity-100 transition-opacity">
-            <ShieldCheck size={18} className="text-green-500" />
-            <span className="text-base font-black tracking-tight text-white">Agri<span className="text-green-400">Cert</span></span>
+            <img src="/veridant-logo.png" alt="AgriCert" className="w-6 h-6 object-contain" />
+            <span className="text-base font-black tracking-tight text-white italic">Agri<span className="text-emerald-400">Cert</span></span>
           </div>
 
           <div className="flex flex-wrap justify-center gap-x-8 gap-y-2 text-sm text-gray-500 font-medium">

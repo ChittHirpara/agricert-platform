@@ -26,7 +26,8 @@ const ChatbotWidget = () => {
         setIsLoading(true);
 
         try {
-            const response = await fetch('http://localhost:5000/api/chatbot/ask', {
+            const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+            const response = await fetch(`${baseUrl}/api/chatbot/ask`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ question: userText }),
@@ -47,7 +48,7 @@ const ChatbotWidget = () => {
                 <div className="bg-white rounded-2xl shadow-2xl w-80 h-96 flex flex-col overflow-hidden border border-gray-100 mb-4 transition-all duration-300 transform origin-bottom-right">
                     <div className="bg-green-600 text-white p-4 flex justify-between items-center">
                         <h3 className="font-semibold flex items-center gap-2">
-                            <MessageSquare size={18} /> AgriCert Assistant
+                            <MessageSquare size={18} /> AgriCert Intelligence
                         </h3>
                         <button onClick={() => setIsOpen(false)} className="text-white hover:text-green-200">
                             <X size={20} />

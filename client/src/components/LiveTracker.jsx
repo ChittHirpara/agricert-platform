@@ -172,7 +172,7 @@ const LiveTracker = ({ batch, onClose }) => {
 
           <div className="mt-auto pt-6 border-t border-gray-800 text-center">
             <p className="text-[10px] text-gray-600 font-mono uppercase">
-              AgriQCert IoT Network v2.4<br />
+              AgriCert IoT Network v2.4<br />
               Secure Encrypted Stream
             </p>
           </div>

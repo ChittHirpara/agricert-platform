@@ -2,15 +2,15 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
 import { motion } from 'framer-motion';
-import { 
-  ShieldCheck, CheckCircle, XCircle, Loader2, 
-  Package, MapPin, Tractor, Microscope, Ship, Lock 
+import {
+  ShieldCheck, CheckCircle, XCircle, Loader2,
+  Package, MapPin, Tractor, Microscope, Ship, Lock
 } from 'lucide-react';
 import BlockchainAudit from '../components/BlockchainAudit'; // Import the Matrix Component
 
 const Verify = () => {
   const { id } = useParams();
-  
+
   // --- STATE VARIABLES ---
   const [batch, setBatch] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -68,7 +68,7 @@ const Verify = () => {
     {
       title: "Digitally Certified",
       date: new Date().toLocaleDateString(),
-      desc: "Passport Issued by AgriQCert Authority",
+      desc: "Passport Issued by AgriCert Authority",
       icon: <ShieldCheck size={20} />,
       color: "bg-green-600"
     }
@@ -77,7 +77,7 @@ const Verify = () => {
   return (
     <div className="min-h-screen bg-gray-100 py-10 px-4">
       <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
-        
+
         {/* LEFT COLUMN: The Certificate Card */}
         <div className="md:col-span-1">
           <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-100 sticky top-10">
@@ -111,14 +111,14 @@ const Verify = () => {
                   </div>
                 </div>
               </div>
-              
+
               <div className="flex items-center justify-center gap-2 bg-green-50 text-green-700 p-3 rounded-xl border border-green-100">
-                 <CheckCircle size={16} />
-                 <span className="font-bold text-xs">Verified Valid</span>
+                <CheckCircle size={16} />
+                <span className="font-bold text-xs">Verified Valid</span>
               </div>
 
               {/* --- THE AUDIT BUTTON --- */}
-              <button 
+              <button
                 onClick={() => setShowAudit(true)}
                 className="w-full py-3 bg-gray-900 text-green-400 border border-green-500/30 rounded-xl text-xs font-mono uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-black transition-all shadow-lg"
               >
@@ -132,12 +132,12 @@ const Verify = () => {
         {/* RIGHT COLUMN: The Supply Chain Timeline */}
         <div className="md:col-span-2">
           <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-             <Ship className="text-blue-600" /> Supply Chain Journey
+            <Ship className="text-blue-600" /> Supply Chain Journey
           </h2>
 
           <div className="space-y-8 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-slate-300 before:to-transparent">
             {timelineEvents.map((event, index) => (
-              <motion.div 
+              <motion.div
                 key={index}
                 initial={{ opacity: 0, x: 50 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -157,7 +157,7 @@ const Verify = () => {
               </motion.div>
             ))}
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }} className="relative flex items-center justify-center w-10 h-10 rounded-full border-4 border-white bg-gray-200 shadow shrink-0 md:mx-auto">
-               <div className="w-3 h-3 bg-gray-400 rounded-full animate-pulse"></div>
+              <div className="w-3 h-3 bg-gray-400 rounded-full animate-pulse"></div>
             </motion.div>
           </div>
         </div>

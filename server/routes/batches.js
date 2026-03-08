@@ -32,7 +32,7 @@ const upload = multer({
 // @desc    Submit a new crop batch for certification
 router.post('/', protect, authorize('farmer'), upload.single('document'), async (req, res, next) => {
   try {
-    const { cropName, quantity, location } = req.body;
+    const { cropName, quantity, location, isDemo } = req.body;
     let documentUrl = req.file ? `/uploads/${req.file.filename}` : null;
 
     if (!documentUrl) {
@@ -44,7 +44,8 @@ router.post('/', protect, authorize('farmer'), upload.single('document'), async 
       cropName,
       quantity,
       location,
-      documentUrl
+      documentUrl,
+      isDemo: isDemo === 'true' || isDemo === true
     });
 
     const batch = await newBatch.save();

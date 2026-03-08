@@ -1,3 +1,21 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&family=JetBrains+Mono:wght@100..800&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+:root {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+}
+
+h1,
+h2,
+h3,
+h4,
+.font-premium {
+    font-family: 'Outfit', sans-serif;
+}
+
+.font-mono {
+    font-family: 'JetBrains Mono', monospace;
+}
